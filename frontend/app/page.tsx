@@ -12,6 +12,8 @@ import { useModel } from "@/context/ModelContext";
 import IntelligenceOrb from "@/components/ui/IntelligenceOrb";
 import ModelSelector from "@/components/ui/ModelSelector";
 import { createApplication, analyzeApplication } from "@/lib/api/applications";
+import { dispatchStudioPrompt, CareerQueryAnswer } from "@/lib/api/career";
+import CareerIntelligenceModal from "@/components/studio/CareerIntelligenceModal";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -21,26 +23,47 @@ export default function DashboardPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [careerAnswer, setCareerAnswer] = useState<CareerQueryAnswer | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleStartMatch = async (initialText?: string) => {
-    const textToPass = initialText || promptInput;
-    if (!textToPass || !textToPass.trim()) {
-      setErrorMessage("Please paste a job description first.");
-      return;
-    }
-    const words = textToPass.trim().split(/\s+/).filter(Boolean);
-    if (words.length < 8) {
-      setErrorMessage("Input is too brief. Please paste a realistic job description (minimum 8-10 words).");
+    const textToPass = (initialText || promptInput).trim();
+    if (!textToPass) {
+      setErrorMessage("Please ask a profile question or paste a job description.");
       return;
     }
 
     try {
       setIsProcessing(true);
       setErrorMessage("");
+      setProcessingStatus(`Evaluating prompt with Guardrail & Classifier...`);
+
+      // Node 1 & Node 2: Guardrail & Classifier Node Pipeline
+      const dispatchRes = await dispatchStudioPrompt(textToPass);
+
+      // Guardrail Check
+      if (dispatchRes.status === "rejected") {
+        setErrorMessage(
+          dispatchRes.guardrail?.reason ||
+          "Input was intercepted by security guardrail. Please provide a career-related prompt."
+        );
+        setIsProcessing(false);
+        return;
+      }
+
+      // Classifier Node Decision
+      if (dispatchRes.intent === "PROFILE_QUERY" && dispatchRes.profile_answer) {
+        setProcessingStatus(`Synthesizing candidate profile intelligence...`);
+        setCareerAnswer(dispatchRes.profile_answer);
+        setIsModalOpen(true);
+        setIsProcessing(false);
+        return;
+      }
+
+      // If intent is JOB_DESCRIPTION: Proceed with Application Tailoring Pipeline
       setProcessingStatus(`Analyzing job requirements with ${selectedModel.name}...`);
-      
       const app = await createApplication({
-        jd_text: textToPass.trim(),
+        jd_text: textToPass,
         agent_enabled: true,
       });
 
@@ -50,7 +73,9 @@ export default function DashboardPage() {
       setProcessingStatus(`Directing to results...`);
       router.push(`/applications/${app.id}`);
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to analyze position fit. Ensure your Groq API key is configured.");
+      setErrorMessage(
+        err.message || "Failed to process query. Please ensure your backend is active."
+      );
       setIsProcessing(false);
     }
   };
@@ -72,7 +97,7 @@ export default function DashboardPage() {
               isProcessing
                 ? processingStatus
                 : isOrbActive
-                ? `${selectedModel.name} is tailoring career knowledge...`
+                ? `${selectedModel.name} is querying career knowledge...`
                 : `${selectedModel.name} intelligence core ready`
             }
             isProcessing={isOrbActive || isProcessing}
@@ -91,7 +116,7 @@ export default function DashboardPage() {
           <span
             className={`bg-gradient-to-r ${selectedModel.colors.textAccent} bg-clip-text text-transparent transition-all duration-500`}
           >
-            tailoring today?
+            exploring today?
           </span>
         </motion.h1>
 
@@ -101,7 +126,7 @@ export default function DashboardPage() {
           transition={{ delay: 0.25 }}
           className="mt-2 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-md text-center"
         >
-          Autonomous multi-agent career matching. Zero hallucinated claims.
+          Ask about your verified skills & projects, or paste a job description to tailor.
         </motion.p>
 
         {/* Floating Pill Input Bar */}
@@ -163,7 +188,7 @@ export default function DashboardPage() {
               disabled={isProcessing}
               onChange={(e) => setPromptInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !isProcessing && handleStartMatch()}
-              placeholder="Paste job description to evaluate fit and tailor..."
+              placeholder="Ask a profile question (e.g. 'what is my best project?') or paste a job description..."
               className="flex-1 bg-transparent px-4 py-2 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none disabled:opacity-50"
             />
 
@@ -171,13 +196,13 @@ export default function DashboardPage() {
             <button
               onClick={() => handleStartMatch()}
               disabled={isProcessing}
-              className="relative flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full text-white shadow-lg ring-2 hover:scale-105 active:scale-95 transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100"
+              className="relative flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full text-white shadow-lg ring-2 hover:scale-105 active:scale-95 transition-all duration-500 disabled:opacity-60 disabled:hover:scale-100 cursor-pointer"
               style={{
                 background: `linear-gradient(135deg, ${selectedModel.colors.primary} 0%, ${selectedModel.colors.secondary} 100%)`,
                 boxShadow: `0 0 20px ${selectedModel.colors.primary}60`,
                 borderColor: `${selectedModel.colors.primary}40`,
               }}
-              title="Analyze and Tailor"
+              title="Execute with Intelligence Pipeline"
             >
               {isProcessing ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -188,6 +213,13 @@ export default function DashboardPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* Floating Career Profile Intelligence Modal */}
+      <CareerIntelligenceModal
+        initialData={careerAnswer}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 }

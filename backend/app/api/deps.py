@@ -94,3 +94,14 @@ def get_resolved_groq_model(
     if x_groq_model and x_groq_model.strip():
         return x_groq_model.strip()
     return settings.GROQ_MODEL
+
+
+def get_optional_groq_key(
+    x_groq_api_key: Optional[str] = Header(None, alias="x-groq-api-key"),
+    current_user: User = Depends(get_current_user),
+) -> Optional[str]:
+    """Resolves the Groq key if present, otherwise returns None without raising an error."""
+    try:
+        return get_resolved_groq_key(x_groq_api_key=x_groq_api_key, current_user=current_user)
+    except HTTPException:
+        return None
