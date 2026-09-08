@@ -2,7 +2,7 @@
 
 import { useState, useRef, ChangeEvent, DragEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { UploadCloud, FileText, CheckCircle2, AlertCircle, Loader2, Sparkles } from "lucide-react";
+import { UploadCloud, FileText, CheckCircle2, AlertCircle, Loader2, Sparkles, ArrowUpRight } from "lucide-react";
 import { uploadResume } from "@/lib/api/resumes";
 import { Resume } from "@/lib/types";
 
@@ -48,7 +48,7 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
 
   const handleFileSelected = (file: File) => {
     if (!file.name.toLowerCase().endsWith(".pdf")) {
-      setErrorMessage("Please select a PDF file.");
+      setErrorMessage("Please select a valid PDF file.");
       setStep("error");
       return;
     }
@@ -64,29 +64,28 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
 
     try {
       setStep("uploading");
-      await new Promise((r) => setTimeout(r, 400)); // UI pacing
+      await new Promise((r) => setTimeout(r, 450));
 
       setStep("extracting");
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 650));
 
       setStep("indexing");
       const createdResume = await uploadResume(selectedFile, resumeName);
 
       setStep("ready");
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 550));
 
       if (onSuccess) {
         onSuccess(createdResume);
       }
 
-      // Reset after success
       setTimeout(() => {
         setSelectedFile(null);
         setResumeName("");
         setStep("idle");
-      }, 1500);
+      }, 1400);
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to upload resume.");
+      setErrorMessage(err.message || "Failed to index resume.");
       setStep("error");
     }
   };
@@ -100,9 +99,9 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
 
   const stages = [
     { id: "uploading", label: "Uploading" },
-    { id: "extracting", label: "Extracting Text" },
-    { id: "indexing", label: "Indexing Knowledge" },
-    { id: "ready", label: "Indexed" },
+    { id: "extracting", label: "Extracting" },
+    { id: "indexing", label: "ChromaDB Index" },
+    { id: "ready", label: "Vault Ready" },
   ];
 
   const getStageStatus = (stageId: string) => {
@@ -116,7 +115,10 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
   };
 
   return (
-    <div className="w-full rounded-2xl border border-zinc-800/80 bg-gradient-to-b from-zinc-900/60 to-zinc-950/80 p-6 shadow-xl backdrop-blur-sm">
+    <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 bg-black/45 p-7 shadow-2xl backdrop-blur-2xl">
+      {/* Subtle ambient warm glow */}
+      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-orange-600/10 blur-3xl" />
+
       <input
         ref={fileInputRef}
         type="file"
@@ -137,82 +139,82 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
             onDragOver={handleDrag}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`group flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-all ${
+            className={`group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-12 text-center transition-all ${
               dragActive
-                ? "border-indigo-500 bg-indigo-500/10 scale-[1.01]"
-                : "border-zinc-700/60 hover:border-zinc-500 hover:bg-zinc-900/40"
+                ? "border-orange-500 bg-orange-500/10 scale-[1.01]"
+                : "border-orange-500/20 hover:border-orange-500/45 hover:bg-orange-500/5"
             }`}
           >
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-800/80 text-zinc-300 shadow-inner group-hover:scale-110 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-all">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/20 via-orange-600/20 to-transparent border border-orange-500/30 text-orange-400 shadow-md group-hover:scale-110 group-hover:border-orange-400 transition-all">
               <UploadCloud className="h-7 w-7" />
             </div>
-            <h4 className="text-base font-semibold text-zinc-200">
-              Drag and drop your resume PDF
+            <h4 className="text-base font-semibold text-white tracking-tight">
+              Drop your resume PDF into the Vault
             </h4>
             <p className="mt-1 text-xs text-zinc-400 max-w-sm">
               Upload AI, Backend, Data, or General resumes. The original document remains immutable.
             </p>
-            <div className="mt-5 inline-flex items-center gap-2 rounded-lg bg-zinc-800 px-4 py-2 text-xs font-medium text-zinc-300 shadow hover:bg-zinc-700 transition-colors">
-              <FileText className="h-4 w-4 text-indigo-400" />
-              <span>Browse PDF</span>
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-orange-500/25 bg-orange-950/20 px-4 py-2 text-xs font-medium text-orange-200 shadow hover:bg-orange-500/20 transition-all">
+              <FileText className="h-3.5 w-3.5 text-orange-400" />
+              <span>Browse File</span>
             </div>
           </motion.div>
         )}
 
         {step === "idle" && selectedFile && (
           <motion.div
-            key="file-configured"
+            key="file-selected"
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="flex flex-col gap-5 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6"
+            className="flex flex-col gap-5 rounded-2xl border border-orange-500/20 bg-black/50 p-6"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  <FileText className="h-6 w-6" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500/15 text-orange-400 border border-orange-500/30">
+                  <FileText className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-zinc-200">{selectedFile.name}</h4>
-                  <p className="text-xs text-zinc-400">
+                  <h4 className="text-sm font-semibold text-white">{selectedFile.name}</h4>
+                  <p className="text-[11px] text-zinc-400 font-mono">
                     {(selectedFile.size / 1024).toFixed(1)} KB • PDF Document
                   </p>
                 </div>
               </div>
               <button
                 onClick={reset}
-                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="text-xs text-orange-300/60 hover:text-orange-300 transition-colors"
               >
-                Change file
+                Change
               </button>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium text-zinc-300">
-                Resume Label / Target Role
+                Resume Label / Specialization
               </label>
               <input
                 type="text"
                 value={resumeName}
                 onChange={(e) => setResumeName(e.target.value)}
-                placeholder="e.g. AI Resume, Senior Backend Resume"
-                className="rounded-lg border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                placeholder="e.g. AI & ML Resume, Senior Backend Resume"
+                className="rounded-xl border border-orange-500/20 bg-black/60 px-4 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
               />
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={reset}
-                className="rounded-lg px-4 py-2 text-xs font-medium text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
+                className="rounded-full px-4 py-2 text-xs font-medium text-zinc-400 hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={triggerUpload}
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-500/20 hover:brightness-110 active:scale-95 transition-all"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 px-6 py-2.5 text-xs font-semibold text-white shadow-lg shadow-orange-600/30 hover:brightness-110 active:scale-95 transition-all"
               >
-                <Sparkles className="h-4 w-4" />
-                <span>Upload & Index</span>
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Index into ChromaDB</span>
               </button>
             </div>
           </motion.div>
@@ -226,52 +228,52 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
             exit={{ opacity: 0, y: -10 }}
             className="flex flex-col items-center justify-center py-8 text-center"
           >
-            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-500/10 border border-orange-500/30 shadow-inner">
               {step === "ready" ? (
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
-                  <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+                  <CheckCircle2 className="h-8 w-8 text-orange-400" />
                 </motion.div>
               ) : (
-                <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+                <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
               )}
             </div>
 
-            <h4 className="text-base font-semibold text-zinc-100">
-              {step === "ready" ? "Indexed Successfully!" : "Processing Resume Knowledge"}
+            <h4 className="text-base font-semibold text-white">
+              {step === "ready" ? "Indexed Into Career Vault" : "Processing Resume Knowledge"}
             </h4>
-            <p className="mt-1 text-xs text-zinc-400">
-              {step === "uploading" && "Sending PDF to server..."}
-              {step === "extracting" && "Extracting text and identifying sections..."}
-              {step === "indexing" && "Chunking text and storing knowledge in vector store..."}
-              {step === "ready" && "Ready for job description matching and tailoring."}
+            <p className="mt-1 text-xs text-orange-200/60 max-w-sm">
+              {step === "uploading" && "Uploading document to secure server..."}
+              {step === "extracting" && "Extracting raw text and identifying career sections..."}
+              {step === "indexing" && "Chunking text & dispatching to ChromaDB RAG store..."}
+              {step === "ready" && "Ready for job description matching & LaTeX generation."}
             </p>
 
             {/* Stepper Progress Visualizer */}
-            <div className="mt-8 grid grid-cols-4 w-full max-w-lg gap-2">
+            <div className="mt-7 grid grid-cols-4 w-full max-w-md gap-2">
               {stages.map((stage) => {
                 const status = getStageStatus(stage.id);
                 return (
-                  <div key={stage.id} className="flex flex-col items-center gap-2">
+                  <div key={stage.id} className="flex flex-col items-center gap-1.5">
                     <div
                       className={`h-1.5 w-full rounded-full transition-all duration-300 ${
                         status === "completed"
-                          ? "bg-emerald-400"
+                          ? "bg-gradient-to-r from-amber-400 to-orange-500"
                           : status === "active"
-                          ? "bg-indigo-500 animate-pulse"
-                          : "bg-zinc-800"
+                          ? "bg-orange-500 animate-pulse"
+                          : "bg-white/10"
                       }`}
                     />
                     <span
-                      className={`text-[11px] font-medium ${
+                      className={`text-[10px] font-medium tracking-tight ${
                         status === "completed"
-                          ? "text-emerald-400"
+                          ? "text-orange-300"
                           : status === "active"
-                          ? "text-indigo-400"
-                          : "text-zinc-500"
+                          ? "text-orange-400"
+                          : "text-zinc-600"
                       }`}
                     >
                       {stage.label}
@@ -291,14 +293,14 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
             exit={{ opacity: 0 }}
             className="flex flex-col items-center justify-center py-6 text-center"
           >
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30">
               <AlertCircle className="h-6 w-6" />
             </div>
-            <h4 className="text-sm font-semibold text-zinc-200">Upload Failed</h4>
-            <p className="mt-1 text-xs text-rose-300 max-w-md">{errorMessage}</p>
+            <h4 className="text-sm font-semibold text-white">Indexing Failed</h4>
+            <p className="mt-1 text-xs text-rose-300/80 max-w-md">{errorMessage}</p>
             <button
               onClick={reset}
-              className="mt-4 rounded-lg bg-zinc-800 px-4 py-2 text-xs font-medium text-zinc-200 hover:bg-zinc-700 transition-colors"
+              className="mt-4 rounded-full border border-orange-500/30 bg-orange-950/20 px-5 py-1.5 text-xs font-medium text-orange-200 hover:bg-orange-500/20 transition-all"
             >
               Try Again
             </button>
