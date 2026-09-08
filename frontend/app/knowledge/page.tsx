@@ -96,6 +96,8 @@ export default function KnowledgeUniversePage() {
           nodes={data.nodes}
           onSelectNode={(node) => setSelectedNode(node)}
           selectedNodeId={selectedNode?.id}
+          onRefresh={loadUniverse}
+          isRefreshing={loading}
         />
       ) : null}
 

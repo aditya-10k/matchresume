@@ -4,12 +4,14 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { KnowledgeNode } from "@/lib/api/knowledge";
 import { useModel } from "@/context/ModelContext";
-import { Search } from "lucide-react";
+import { Search, RotateCw } from "lucide-react";
 
 interface FloatingBlobsCanvasProps {
   nodes: KnowledgeNode[];
   onSelectNode: (node: KnowledgeNode) => void;
   selectedNodeId?: string | null;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 // Deterministic organic blob border-radius generator based on seed
@@ -47,6 +49,8 @@ export default function FloatingBlobsCanvas({
   nodes,
   onSelectNode,
   selectedNodeId,
+  onRefresh,
+  isRefreshing,
 }: FloatingBlobsCanvasProps) {
   const { selectedModel } = useModel();
   const [searchQuery, setSearchQuery] = useState("");
@@ -293,9 +297,9 @@ export default function FloatingBlobsCanvas({
         ))}
       </svg>
 
-      {/* Minimalist Floating Search in Corner */}
-      <div className="absolute top-5 right-6 z-30 w-52 sm:w-64">
-        <div className="relative">
+      {/* Minimalist Floating Controls in Corner */}
+      <div className="absolute top-5 right-6 z-30 flex items-center gap-2">
+        <div className="relative w-48 sm:w-60">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
           <input
             type="text"
@@ -309,6 +313,21 @@ export default function FloatingBlobsCanvas({
             }}
           />
         </div>
+
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            title="Sync with ChromaDB Vector Store"
+            className="flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-xl border text-zinc-300 hover:text-white transition-all disabled:opacity-50 hover:scale-105 active:scale-95 cursor-pointer"
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0.65)",
+              borderColor: `${selectedModel.colors.primary}35`,
+            }}
+          >
+            <RotateCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+          </button>
+        )}
       </div>
 
       {/* Scattered Organic Blobs - Fixed coordinates with smooth breathing/shine only */}

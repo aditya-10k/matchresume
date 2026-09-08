@@ -71,6 +71,7 @@ async def upload_resume(
             metadata={
                 "source": file.filename,
                 "name": display_name,
+                "user_id": current_user.id,
             }
         )
     except NotImplementedError as nie:
@@ -167,6 +168,14 @@ def delete_resume(resume_id: str, db: Session = Depends(get_db)):
             os.remove(resume.file_path)
         except OSError:
             pass
+
+    # Clean up vector chunks from ChromaDB
+    try:
+        from app.rag.vector_store import get_vector_store
+        get_vector_store().delete_resume(resume_id)
+    except Exception as e:
+        import logging
+        logging.getLogger("resumes_api").warning(f"Could not delete vector chunks for resume {resume_id}: {e}")
 
     db.delete(resume)
     db.commit()
