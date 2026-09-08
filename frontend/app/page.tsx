@@ -8,21 +8,20 @@ import {
   Sparkles,
   ArrowRight,
   Plus,
-  Briefcase,
-  Layers,
-  CheckCircle2,
   FileText,
-  SlidersHorizontal,
   Send,
   Cpu
 } from "lucide-react";
 import { fetchResumes } from "@/lib/api/resumes";
 import { Resume } from "@/lib/types";
+import { useModel } from "@/context/ModelContext";
 import IntelligenceOrb from "@/components/ui/IntelligenceOrb";
+import ModelSelector from "@/components/ui/ModelSelector";
 import ResumeCard from "@/components/resumes/ResumeCard";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { selectedModel } = useModel();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
   const [promptInput, setPromptInput] = useState("");
@@ -37,11 +36,8 @@ export default function DashboardPage() {
 
   const handleStartMatch = (initialText?: string) => {
     const textToPass = initialText || promptInput;
-    if (textToPass.trim()) {
-      router.push(`/applications/new?jd=${encodeURIComponent(textToPass.trim())}`);
-    } else {
-      router.push("/applications/new");
-    }
+    const queryParam = textToPass.trim() ? `?jd=${encodeURIComponent(textToPass.trim())}&model=${selectedModel.id}` : `?model=${selectedModel.id}`;
+    router.push(`/applications/new${queryParam}`);
   };
 
   const presetCards = [
@@ -64,8 +60,14 @@ export default function DashboardPage() {
 
   return (
     <div className="relative mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col justify-between px-4 py-6 sm:px-6 lg:px-8">
-      {/* Top Ambient Glow Background */}
-      <div className="pointer-events-none absolute top-12 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-orange-600/15 blur-[120px] -z-10" />
+      {/* Dynamic Atmospheric Glow Background mapped to current model color */}
+      <div
+        className="pointer-events-none absolute top-12 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full blur-[130px] -z-10 transition-colors duration-700"
+        style={{
+          backgroundColor: selectedModel.colors.primary,
+          opacity: 0.18,
+        }}
+      />
 
       {/* Main Hero Showcase */}
       <div className="flex flex-col items-center text-center mt-4 sm:mt-8">
@@ -78,13 +80,13 @@ export default function DashboardPage() {
         >
           <IntelligenceOrb
             size="hero"
-            status={isOrbActive ? "Aira is analyzing career knowledge..." : "Aira intelligence core ready"}
+            status={isOrbActive ? `${selectedModel.name} is tailoring career knowledge...` : `${selectedModel.name} intelligence core ready`}
             isProcessing={isOrbActive}
             onClick={() => setIsOrbActive((prev) => !prev)}
           />
         </motion.div>
 
-        {/* Expressive Display Headline (Matching Screenshot) */}
+        {/* Expressive Display Headline with Dynamic Model Gradient */}
         <motion.h1
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -92,7 +94,9 @@ export default function DashboardPage() {
           className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white max-w-2xl"
         >
           What are we <br className="hidden sm:inline" />
-          <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-orange-500 bg-clip-text text-transparent">
+          <span
+            className={`bg-gradient-to-r ${selectedModel.colors.textAccent} bg-clip-text text-transparent transition-all duration-500`}
+          >
             tailoring today?
           </span>
         </motion.h1>
@@ -101,13 +105,13 @@ export default function DashboardPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="mt-3 text-xs sm:text-sm text-orange-200/60 max-w-lg"
+          className="mt-3 text-xs sm:text-sm text-zinc-400 max-w-lg"
         >
           Semantic career matching powered by RAG and autonomous agents. Pure verifiable experience in canonical LaTeX.
         </motion.p>
       </div>
 
-      {/* Bento Preset Cards (Directly from Reference Screen 1) */}
+      {/* Bento Preset Cards */}
       <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
         {presetCards.map((card, idx) => (
           <motion.div
@@ -117,20 +121,33 @@ export default function DashboardPage() {
             transition={{ delay: 0.3 + idx * 0.1 }}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
             onClick={() => handleStartMatch(card.prompt)}
-            className="group cursor-pointer rounded-3xl border border-orange-500/15 bg-black/40 p-5 shadow-xl backdrop-blur-xl transition-all hover:border-orange-500/40 hover:bg-orange-500/5 hover:shadow-[0_8px_30px_rgba(255,92,0,0.12)] flex flex-col justify-between"
+            className="group cursor-pointer rounded-3xl bg-black/40 p-5 shadow-xl backdrop-blur-xl transition-all flex flex-col justify-between"
+            style={{
+              border: `1px solid ${selectedModel.colors.primary}20`,
+            }}
           >
             <div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-400 border border-orange-500/20 group-hover:scale-110 group-hover:bg-orange-500/20 transition-all">
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-2xl transition-all group-hover:scale-110"
+                style={{
+                  background: `${selectedModel.colors.primary}18`,
+                  border: `1px solid ${selectedModel.colors.primary}35`,
+                  color: selectedModel.colors.primary,
+                }}
+              >
                 <Sparkles className="h-4 w-4" />
               </div>
-              <h3 className="mt-4 text-sm font-semibold text-white tracking-tight group-hover:text-orange-200 transition-colors">
+              <h3 className="mt-4 text-sm font-semibold text-white tracking-tight group-hover:text-zinc-200 transition-colors">
                 {card.title}
               </h3>
               <p className="mt-1 text-xs text-zinc-400 leading-relaxed">
                 {card.subtitle}
               </p>
             </div>
-            <div className="mt-4 flex items-center gap-1 text-[11px] font-medium text-orange-400/80 group-hover:text-orange-300">
+            <div
+              className="mt-4 flex items-center gap-1 text-[11px] font-medium transition-colors"
+              style={{ color: selectedModel.colors.primary }}
+            >
               <span>Launch</span>
               <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
             </div>
@@ -138,28 +155,31 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Floating Pill Input Bar (Directly from Reference Screen 1 & 2 bottom dock) */}
+      {/* Floating Pill Input Bar with Dynamic Model Selector */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
         className="sticky bottom-4 z-40 mt-12 w-full"
       >
-        <div className="mx-auto flex max-w-3xl items-center justify-between rounded-full border border-orange-500/25 bg-black/75 p-2 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5">
-          {/* Attachment / Info icon */}
+        <div
+          className="mx-auto flex max-w-3xl items-center justify-between rounded-full bg-black/80 p-2 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10 transition-all duration-500"
+          style={{
+            border: `1px solid ${selectedModel.colors.primary}35`,
+            boxShadow: `0 20px 50px rgba(0,0,0,0.85), 0 0 25px ${selectedModel.colors.primary}20`,
+          }}
+        >
+          {/* File Vault shortcut */}
           <Link
             href="/resumes"
-            className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-orange-300 transition-colors"
+            className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
             title="Browse Resumes"
           >
             <FileText className="h-4 w-4" />
           </Link>
 
-          {/* Model Selector Pill */}
-          <div className="flex items-center gap-1.5 rounded-full border border-orange-500/20 bg-orange-950/30 px-3 py-1.5 text-[11px] font-medium text-orange-300">
-            <Cpu className="h-3 w-3 text-orange-400" />
-            <span className="hidden xs:inline">Groq</span> Llama 3.3
-          </div>
+          {/* Model Selector Trigger inside Dock */}
+          <ModelSelector />
 
           {/* Input text field */}
           <input
@@ -174,7 +194,12 @@ export default function DashboardPage() {
           {/* Glowing Circular Molten Action Button */}
           <button
             onClick={() => handleStartMatch()}
-            className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-orange-600 text-white shadow-lg shadow-orange-600/40 ring-2 ring-orange-400/30 hover:scale-105 active:scale-95 transition-all"
+            className="relative flex h-11 w-11 items-center justify-center rounded-full text-white shadow-lg ring-2 hover:scale-105 active:scale-95 transition-all duration-500"
+            style={{
+              background: `linear-gradient(135deg, ${selectedModel.colors.primary} 0%, ${selectedModel.colors.secondary} 100%)`,
+              boxShadow: `0 0 20px ${selectedModel.colors.primary}60`,
+              borderColor: `${selectedModel.colors.primary}40`,
+            }}
             title="Analyze and Tailor"
           >
             <Sparkles className="h-5 w-5" />
@@ -182,21 +207,29 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* Your Resumes Drawer / Vault Section */}
-      <div className="mt-16 border-t border-orange-500/15 pt-8">
+      {/* Career Vault Drawer */}
+      <div className="mt-16 border-t border-white/10 pt-8">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
               Career Vault
-              <span className="rounded-full bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-400 border border-orange-500/20">
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors duration-500"
+                style={{
+                  background: `${selectedModel.colors.primary}18`,
+                  color: selectedModel.colors.primary,
+                  border: `1px solid ${selectedModel.colors.primary}35`,
+                }}
+              >
                 {resumes.length} Ingested
               </span>
             </h2>
-            <p className="text-xs text-orange-200/50">Immutable resume knowledge bases for vector retrieval.</p>
+            <p className="text-xs text-zinc-400">Immutable resume knowledge bases for vector retrieval.</p>
           </div>
           <Link
             href="/resumes"
-            className="flex items-center gap-1 text-xs font-medium text-orange-400 hover:text-orange-300 transition-colors"
+            className="flex items-center gap-1 text-xs font-medium transition-colors"
+            style={{ color: selectedModel.colors.primary }}
           >
             <span>Open Vault</span>
             <ArrowRight className="h-3.5 w-3.5" />
@@ -207,16 +240,20 @@ export default function DashboardPage() {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-40 rounded-3xl border border-orange-500/15 bg-black/40 animate-pulse" />
+                <div key={i} className="h-40 rounded-3xl border border-white/10 bg-black/40 animate-pulse" />
               ))}
             </div>
           ) : resumes.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-orange-500/20 bg-black/30 p-8 text-center">
-              <FileText className="mx-auto h-8 w-8 text-orange-400/50" />
+            <div className="rounded-3xl border border-dashed border-white/15 bg-black/30 p-8 text-center">
+              <FileText className="mx-auto h-8 w-8 text-zinc-600" />
               <p className="mt-2 text-xs text-zinc-400">No resumes stored in your vector vault yet.</p>
               <Link
                 href="/resumes"
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-orange-500/30 bg-orange-950/25 px-4 py-1.5 text-xs font-semibold text-orange-300 hover:bg-orange-500/20 transition-all"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-semibold text-white transition-all"
+                style={{
+                  borderColor: `${selectedModel.colors.primary}40`,
+                  background: `${selectedModel.colors.primary}20`,
+                }}
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span>Upload First Resume</span>

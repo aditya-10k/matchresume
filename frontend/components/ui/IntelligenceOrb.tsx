@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useModel } from "@/context/ModelContext";
 
 interface IntelligenceOrbProps {
   size?: "sm" | "md" | "lg" | "hero";
@@ -11,16 +12,20 @@ interface IntelligenceOrbProps {
 
 export default function IntelligenceOrb({
   size = "hero",
-  status = "Aira is ready...",
+  status,
   isProcessing = false,
   onClick,
 }: IntelligenceOrbProps) {
+  const { selectedModel } = useModel();
+
   const sizeMap = {
     sm: "w-20 h-20",
     md: "w-36 h-36",
     lg: "w-52 h-52",
     hero: "w-60 h-60 sm:w-72 sm:h-72",
   };
+
+  const currentStatus = status || `${selectedModel.name} core active`;
 
   return (
     <div className="flex flex-col items-center justify-center select-none">
@@ -36,17 +41,23 @@ export default function IntelligenceOrb({
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className={`absolute rounded-full bg-gradient-to-tr from-orange-600 via-amber-500 to-yellow-400 blur-3xl ${sizeMap[size]}`}
-          style={{ transform: "scale(1.35)" }}
+          className={`absolute rounded-full blur-3xl transition-colors duration-700 ${sizeMap[size]}`}
+          style={{
+            background: `radial-gradient(circle, ${selectedModel.colors.primary}80 0%, ${selectedModel.colors.secondary}40 50%, transparent 80%)`,
+            transform: "scale(1.4)",
+          }}
         />
 
-        {/* Secondary warm dusk diffuse aura */}
-        <div
-          className={`absolute rounded-full bg-orange-600/25 blur-2xl ${sizeMap[size]}`}
-          style={{ transform: "scale(1.15)" }}
+        {/* Secondary diffuse aura */}
+        <motion.div
+          className={`absolute rounded-full blur-2xl transition-colors duration-700 ${sizeMap[size]}`}
+          style={{
+            background: `${selectedModel.colors.primary}30`,
+            transform: "scale(1.15)",
+          }}
         />
 
-        {/* The 3D Rendered Sphere */}
+        {/* The 3D Rendered Dynamic Sphere */}
         <motion.div
           onClick={onClick}
           animate={{
@@ -59,20 +70,17 @@ export default function IntelligenceOrb({
           }}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
-          className={`relative rounded-full cursor-pointer shadow-2xl transition-all ${sizeMap[size]}`}
+          className={`relative rounded-full cursor-pointer shadow-2xl transition-all duration-700 ${sizeMap[size]}`}
           style={{
-            background:
-              "radial-gradient(circle at 35% 30%, #ffcf70 0%, #ff8c1a 25%, #d94a00 55%, #7a1d00 80%, #290800 100%)",
-            boxShadow:
-              "inset -12px -16px 28px rgba(20, 4, 0, 0.85), inset 8px 10px 18px rgba(255, 235, 175, 0.6), 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 70px rgba(255, 92, 0, 0.45)",
+            background: selectedModel.colors.orbGradient,
+            boxShadow: `inset -12px -16px 28px rgba(0, 0, 0, 0.85), inset 8px 10px 18px rgba(255, 255, 255, 0.45), 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 70px ${selectedModel.colors.primary}45`,
           }}
         >
           {/* Specular Glint / Highlight */}
           <div
-            className="absolute top-4 left-6 w-14 h-10 rounded-full blur-[1px] opacity-75 pointer-events-none"
+            className="absolute top-4 left-6 w-14 h-10 rounded-full blur-[1px] opacity-75 pointer-events-none transition-all duration-700"
             style={{
-              background:
-                "radial-gradient(ellipse at center, rgba(255, 255, 255, 0.9) 0%, rgba(255, 230, 160, 0.4) 50%, transparent 100%)",
+              background: selectedModel.colors.orbSpecular,
               transform: "rotate(-25deg)",
             }}
           />
@@ -89,20 +97,22 @@ export default function IntelligenceOrb({
                 repeat: Infinity,
                 ease: "easeOut",
               }}
-              className="absolute inset-0 rounded-full border-2 border-amber-300 pointer-events-none"
+              className="absolute inset-0 rounded-full border-2 pointer-events-none"
+              style={{ borderColor: selectedModel.colors.secondary }}
             />
           )}
         </motion.div>
       </div>
 
       {/* Subtitle / Status Text */}
-      {status && (
+      {currentStatus && (
         <motion.p
-          animate={{ opacity: isProcessing ? [0.6, 1, 0.6] : 0.8 }}
+          animate={{ opacity: isProcessing ? [0.6, 1, 0.6] : 0.85 }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="mt-6 text-xs sm:text-sm font-medium tracking-wide text-orange-200/70"
+          className="mt-6 text-xs sm:text-sm font-medium tracking-wide transition-colors duration-500"
+          style={{ color: `${selectedModel.colors.primary}dd` }}
         >
-          {status}
+          {currentStatus}
         </motion.p>
       )}
     </div>
