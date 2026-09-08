@@ -49,28 +49,155 @@ Return valid JSON with this exact schema:
 }
 """
 
-    PRESET_BLUEPRINTS = {
-        "classic_tech": """Use the Jake's Resume / Ivy League Tech Standard layout:
-- \\documentclass[10pt, letterpaper]{article}
-- \\usepackage[margin=0.65in]{geometry}, \\usepackage{titlesec}, \\usepackage{enumitem}, \\usepackage{hyperref}
-- \\titleformat{\\section}{\\large\\bfseries\\uppercase}{}{0em}{}[\\titlerule]
-- Name centered: {\\Huge \\textbf{Name}}
-- Sections required: \\section*{Education}, \\section*{Technical Skills}, \\section*{Experience}, \\section*{Projects}
-- Subheadings: \\textbf{Company / Role} \\hfill Date \\\\ with \\begin{itemize}[leftmargin=*, nosep]
-- Skills categories bolded: \\item \\textbf{Category:} skill1, skill2...
-""",
-        "modern_clean": """Use the Modern Executive Minimalist layout:
-- \\documentclass[10pt, letterpaper]{article}
-- \\usepackage[margin=0.7in]{geometry}, \\usepackage{titlesec}, \\usepackage{enumitem}, \\usepackage{hyperref}
-- \\titleformat{\\section}{\\large\\bfseries}{}{0em}{}[\\vspace{-2pt}\\rule{\\textwidth}{0.5pt}]
-- Sections: \\section*{Summary}, \\section*{Core Competencies}, \\section*{Professional Experience}, \\section*{Education}
-""",
-        "compact_research": """Use the Academic & Systems Research layout:
-- \\documentclass[10pt, letterpaper]{article}
-- \\usepackage[margin=0.65in]{geometry}, \\usepackage{titlesec}, \\usepackage{enumitem}, \\usepackage{hyperref}
-- \\titleformat{\\section}{\\large\\bfseries\\scshape}{}{0em}{}[\\titlerule]
-- Sections: \\section*{Research & Technical Focus}, \\section*{Experience}, \\section*{Key Projects & Systems}, \\section*{Education}
-"""
+    PRESET_TEMPLATES = {
+        "classic_tech": r"""\documentclass[10pt, letterpaper]{article}
+\usepackage[margin=0.6in]{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{xcolor}
+
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=black}
+
+\titleformat{\section}{\large\bfseries\uppercase}{}{0em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{10pt}{4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+
+\begin{document}
+\begin{center}
+    {\Huge \textbf{Candidate Name}} \\
+    \small Phone | \href{mailto:email}{email} | \href{https://linkedin.com/in/...}{LinkedIn} | \href{https://github.com/...}{GitHub}
+\end{center}
+
+\section*{Education}
+\textbf{Institution Name}, Location \hfill Grad Year \\
+\textit{Degree, Major} (CGPA: X.XX)
+
+\section*{Technical Skills}
+\begin{itemize}[leftmargin=*, nosep]
+    \item \textbf{Languages:} Python, TypeScript, SQL...
+    \item \textbf{Frameworks \& Libraries:} FastAPI, React, Next.js...
+    \item \textbf{Developer Tools:} Docker, Git, AWS...
+\end{itemize}
+
+\section*{Experience}
+\textbf{Company Name} \hfill Location \\
+\textit{Job Title} \hfill Start Date -- End Date
+\begin{itemize}[leftmargin=*, nosep]
+    \item Achievement with metrics and active impact verb...
+\end{itemize}
+
+\section*{Projects}
+\textbf{Project Name} $|$ \textit{Tech Stack} \hfill \href{https://url}{Link}
+\begin{itemize}[leftmargin=*, nosep]
+    \item Architecture and accomplishment details...
+\end{itemize}
+
+\end{document}""",
+
+        "modern_clean": r"""\documentclass[10pt, letterpaper]{article}
+\usepackage[margin=0.65in]{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{xcolor}
+
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=black}
+\titleformat{\section}{\large\bfseries}{}{0em}{}[\vspace{-2pt}\rule{\textwidth}{0.5pt}]
+\titlespacing*{\section}{0pt}{10pt}{4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+
+\begin{document}
+\begin{center}
+    {\LARGE \textbf{Candidate Name}} \\
+    \small Phone | \href{mailto:email}{email} | \href{https://linkedin.com/in/...}{LinkedIn}
+\end{center}
+
+\section*{Summary}
+Executive summary tailored to role...
+
+\section*{Core Competencies}
+\begin{itemize}[leftmargin=*, nosep]
+    \item \textbf{Engineering Domains:} Systems Design, Cloud Architecture...
+    \item \textbf{Core Stack:} Python, TypeScript, PostgreSQL...
+\end{itemize}
+
+\section*{Professional Experience}
+\textbf{Company Name} \hfill Location \\
+\textit{Job Title} \hfill Start Date -- End Date
+\begin{itemize}[leftmargin=*, nosep]
+    \item Accomplishment with metrics...
+\end{itemize}
+
+\section*{Education}
+\textbf{Institution Name}, Location \hfill Grad Year \\
+\textit{Degree, Major}
+
+\end{document}""",
+
+        "compact_research": r"""\documentclass[10pt, letterpaper]{article}
+\usepackage[margin=0.6in]{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{xcolor}
+
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=black}
+\titleformat{\section}{\large\bfseries\scshape}{}{0em}{}[\titlerule]
+\titlespacing*{\section}{0pt}{10pt}{4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+
+\begin{document}
+\begin{center}
+    {\Huge \textbf{Candidate Name}} \\
+    \small Phone | \href{mailto:email}{email} | \href{https://scholar.google.com/...}{Google Scholar} | \href{https://github.com/...}{GitHub}
+\end{center}
+
+\section*{Research \& Technical Focus}
+\begin{itemize}[leftmargin=*, nosep]
+    \item \textbf{Research Interests:} Machine Learning, NLP, Distributed Systems...
+    \item \textbf{Scientific Tooling:} PyTorch, JAX, HuggingFace, CUDA...
+\end{itemize}
+
+\section*{Experience}
+\textbf{Lab / Organization Name} \hfill Location \\
+\textit{Research Role} \hfill Start Date -- End Date
+\begin{itemize}[leftmargin=*, nosep]
+    \item Research contribution and methodology...
+\end{itemize}
+
+\section*{Key Projects \& Systems}
+\textbf{Project Name} $|$ \textit{Architecture} \hfill \href{https://url}{Link}
+\begin{itemize}[leftmargin=*, nosep]
+    \item Implementation and evaluation details...
+\end{itemize}
+
+\section*{Education}
+\textbf{Institution Name}, Location \hfill Grad Year \\
+\textit{Degree, Major}
+
+\end{document}""",
+
+        "plaintext_standard": """# Candidate Name
+Phone | email | LinkedIn | GitHub
+
+## TECHNICAL SKILLS
+- Languages: ...
+- Frameworks & Tools: ...
+
+## PROFESSIONAL EXPERIENCE
+**Company Name** | Job Title | Dates
+- Accomplishment with metrics...
+
+## PROJECTS
+**Project Name** | Tech Stack
+- Architecture and impact...
+
+## EDUCATION
+**University Name** | Degree | Graduation Year"""
     }
 
     def tailor(
@@ -86,7 +213,7 @@ Return valid JSON with this exact schema:
         custom_template: Optional[str] = None,
         output_format: Optional[str] = "latex",
     ) -> TailoredResumeOutput:
-        """Tailors candidate experience into an ATS-friendly LaTeX or Plaintext document."""
+        """Tailors candidate experience into an ATS-friendly LaTeX or Plaintext document strictly using the designated template."""
         prefs_section = ""
         if user_preferences:
             prefs_text = "\n".join([f"- {p}" for p in user_preferences])
@@ -95,37 +222,47 @@ Return valid JSON with this exact schema:
         is_plaintext = (output_format == "plaintext") or (preset_id == "plaintext_standard")
 
         if is_plaintext:
-            format_instructions = """
+            format_instructions = f"""
 TARGET OUTPUT FORMAT: PLAIN TEXT / MARKDOWN RESUME (.txt)
-Return valid JSON with:
-{
-  "latex_code": "# CANDIDATE NAME\\nPhone | Email | LinkedIn | GitHub\\n\\n## TECHNICAL SKILLS\\n- Languages: ...\\n- Tools: ...\\n\\n## PROFESSIONAL EXPERIENCE\\n**Company Name** | Role Title | Date\\n- Action verb achievement with metrics...\\n\\n## PROJECTS\\n**Project Title** | Tech Stack\\n- Architecture & impact details...\\n\\n## EDUCATION\\n**Institution** | Degree | Date\\n",
-  "tailored_summary": "2-3 sentences explaining tailoring strategy.",
-  "highlighted_skills": ["top", "skills"]
-}
-CRITICAL: Use standard Markdown formatting with # Headings, **Bold Subheadings**, and - Bullet Points. Include ALL verified sections: Education, Technical Skills, Experience, and Projects.
+You MUST use this EXACT Markdown layout:
+```markdown
+{self.PRESET_TEMPLATES['plaintext_standard']}
+```
+CRITICAL RULES:
+1. Standard Markdown headings: # for Name, ## for Sections.
+2. Bold subheadings: **Company** | Role | Date.
+3. Dash bullets for achievements: - Action verb...
+4. Include all verified sections from the candidate's history.
 """
         elif custom_template and custom_template.strip():
             format_instructions = f"""
 TARGET OUTPUT FORMAT: CUSTOM LATEX TEMPLATE
-You MUST strictly use this custom template structure as your structural skeleton:
+You MUST use the EXACT LaTeX document template provided below as your rigid skeleton:
 ```latex
-{custom_template.strip()[:2000]}
+{custom_template.strip()}
 ```
-Populate the candidate's verified facts into this exact template structure.
+
+CRITICAL TEMPLATE COMPLIANCE RULES:
+1. PREAMBLE FIDELITY: You MUST preserve the exact LaTeX preamble, package declarations, styling commands, and geometry margins verbatim without modification.
+2. NO HALLUCINATED COMMANDS: Do NOT introduce nonexistent or non-standard macros (like \\hr). Standard LaTeX only!
+3. ESCAPE SPECIAL CHARACTERS: All special characters in body text MUST be escaped: & as \\&, % as \\%, _ as \\_, # as \\#.
+4. POPULATION: Slot the candidate's verified facts directly into the corresponding sections of this custom template.
 """
         else:
-            blueprint = self.PRESET_BLUEPRINTS.get(preset_id or "classic_tech", self.PRESET_BLUEPRINTS["classic_tech"])
+            template_code = self.PRESET_TEMPLATES.get(preset_id or "classic_tech", self.PRESET_TEMPLATES["classic_tech"])
             format_instructions = f"""
-TARGET OUTPUT FORMAT: PUBLICATION-GRADE LATEX RESUME (.tex)
-Template Blueprint:
-{blueprint}
+TARGET OUTPUT FORMAT: STRICT COMPILABLE LATEX TEMPLATE
+You MUST use the EXACT LaTeX document template provided below as your rigid structural skeleton:
+```latex
+{template_code}
+```
 
-CRITICAL RULES:
-1. Every LaTeX section MUST be complete: Education, Technical Skills, Experience, and Projects.
-2. Escapes: & as \\&, % as \\%, _ as \\_, # as \\#.
-3. Use \\section*{{...}} for all section headers.
-4. Keep all text in clean ASCII characters (use standard ' and \" quotes, never unicode smart quotes).
+CRITICAL TEMPLATE COMPLIANCE RULES:
+1. PREAMBLE FIDELITY: You MUST copy the exact preamble verbatim (everything from \\documentclass[10pt, letterpaper]{{article}} down to \\begin{{document}}), including all \\usepackage, \\hypersetup, \\titleformat, \\titlespacing, and \\setlength definitions. Do NOT alter the margins, package imports, or title formats!
+2. NO HALLUCINATED MACROS: Do NOT invent commands like \\hr, \\line, or custom shortcuts. Standard LaTeX only!
+3. SECTION STRUCTURE: Strictly maintain the exact section titles and hierarchy from the template.
+4. ESCAPE SPECIAL CHARACTERS: All special characters in plain text MUST be escaped: & as \\&, % as \\%, _ as \\_, # as \\#, $ as \\$.
+5. CANDIDATE GROUNDING: Replace the placeholder candidate details with the candidate's verified background, strategically tailored to emphasize keywords from the target JD.
 """
 
         user_prompt = f"""
@@ -143,7 +280,7 @@ RETRIEVED FACTUAL EVIDENCE CHUNKS:
 {format_instructions}
 
 Instructions:
-Synthesize a complete, high-impact tailored resume that aligns with the target job requirements and adheres to user preferences while remaining 100% faithful to the candidate's actual history.
+Synthesize a complete, high-impact tailored resume that strictly follows the template structure above, aligns with the target job requirements, and adheres to user preferences while remaining 100% faithful to the candidate's actual history.
 Ensure all sections are completely populated without truncation.
 Return valid JSON matching the schema.
 """
@@ -166,8 +303,17 @@ Return valid JSON matching the schema.
             code_content = code_content[:-3]
         code_content = code_content.strip()
 
-        # Normalize unicode smart quotes
-        code_content = code_content.replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"').replace("–", "--").replace("—", "---")
+        # Sanitize common unicode and invalid commands
+        sanitizations = [
+            ("’", "'"), ("‘", "'"), ("“", '"'), ("”", '"'),
+            ("–", "--"), ("—", "---"), ("…", "..."), ("\u00a0", " "),
+            ("\r\n", "\n"),
+        ]
+        for src, dst in sanitizations:
+            code_content = code_content.replace(src, dst)
+
+        # Remove any hallucinated \hr tags
+        code_content = re.sub(r'\\hr\b', '', code_content)
 
         return TailoredResumeOutput(
             latex_code=code_content,

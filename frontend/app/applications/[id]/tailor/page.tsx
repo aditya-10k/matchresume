@@ -23,6 +23,7 @@ import {
   getTailoredResume,
   validateCustomLatex
 } from "@/lib/api/applications";
+import { getPreferences } from "@/lib/api/preferences";
 import { Application } from "@/lib/types";
 import LaTeXEditor from "@/components/latex/LaTeXEditor";
 import LaTeXPreview, { OutputMode } from "@/components/latex/LaTeXPreview";
@@ -65,6 +66,25 @@ export default function LaTeXStudioPage() {
       const app = await getApplication(applicationId);
       setApplication(app);
 
+      // Fetch user's app-level preferences
+      let currentPreset = DEFAULT_PRESET_ID;
+      let currentCustom = "";
+      try {
+        const prefs = await getPreferences();
+        const presetPref = prefs.find((p) => p.key === "default_preset_id");
+        if (presetPref?.value) {
+          currentPreset = presetPref.value;
+          setSelectedPresetId(presetPref.value);
+        }
+        const customPref = prefs.find((p) => p.key === "custom_template");
+        if (customPref?.value) {
+          currentCustom = customPref.value;
+          setCustomTemplate(customPref.value);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch preferences in tailor page:", err);
+      }
+
       // Check if tailored LaTeX already generated
       const existing = await getTailoredResume(applicationId);
       if (existing && existing.latex_code) {
@@ -74,8 +94,8 @@ export default function LaTeXStudioPage() {
           setOutputMode("plaintext");
         }
       } else {
-        // Automatically trigger first synthesis
-        await handleGenerateTailored();
+        // Automatically trigger first synthesis with app-level preset
+        await handleGenerateTailored(currentPreset, currentCustom);
       }
     } catch (err: any) {
       setError(err.message || "Failed to load resume tailoring studio.");
