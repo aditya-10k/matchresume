@@ -326,65 +326,72 @@ export default function FloatingBlobsCanvas({
           const isHovered = hoveredNodeId === node.id;
 
           return (
-            <motion.div
+            <div
               key={node.id}
-              animate={{
-                boxShadow: [
-                  `0 0 18px 2px ${palette.glow}, inset 0 0 8px rgba(255,255,255,0.15)`,
-                  `0 0 40px 9px ${palette.glow}, inset 0 0 16px rgba(255,255,255,0.32)`,
-                  `0 0 18px 2px ${palette.glow}, inset 0 0 8px rgba(255,255,255,0.15)`,
-                ],
-                opacity: isHighlighted ? [0.88, 1, 0.88] : 0.2,
-              }}
-              transition={{
-                duration: pos.shineDuration,
-                repeat: Infinity,
-                delay: pos.shineDelay,
-                ease: "easeInOut",
-              }}
-              whileHover={{ scale: 1.25, zIndex: 45 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onSelectNode(node)}
-              onMouseEnter={() => setHoveredNodeId(node.id)}
-              onMouseLeave={() => setHoveredNodeId(null)}
-              className="absolute cursor-pointer flex flex-col items-center justify-center select-none"
+              className="absolute"
               style={{
                 left: `${pos.x}%`,
                 top: `${pos.y}%`,
-                width: `${pos.size}px`,
-                height: `${pos.size}px`,
                 transform: "translate(-50%, -50%)",
-                borderRadius: pos.shape,
-                background: `radial-gradient(circle at 35% 35%, rgba(255,255,255,0.2) 0%, transparent 60%), linear-gradient(135deg, ${palette.gradient})`,
-                border: `1.5px solid ${palette.border}`,
                 zIndex: isHovered ? 50 : Math.floor(pos.size / 10),
               }}
             >
-              {/* Star Core Dot */}
-              <div
-                className="absolute w-2 h-2 rounded-full blur-[1px] opacity-85 top-2.5 right-3"
-                style={{ background: palette.core }}
-              />
+              <motion.div
+                animate={{
+                  boxShadow: [
+                    `0 0 18px 2px ${palette.glow}, inset 0 0 8px rgba(255,255,255,0.15)`,
+                    `0 0 40px 9px ${palette.glow}, inset 0 0 16px rgba(255,255,255,0.32)`,
+                    `0 0 18px 2px ${palette.glow}, inset 0 0 8px rgba(255,255,255,0.15)`,
+                  ],
+                  opacity: isHighlighted ? [0.88, 1, 0.88] : 0.2,
+                }}
+                transition={{
+                  duration: pos.shineDuration,
+                  repeat: Infinity,
+                  delay: pos.shineDelay,
+                  ease: "easeInOut",
+                }}
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onSelectNode(node)}
+                onMouseEnter={() => setHoveredNodeId(node.id)}
+                onMouseLeave={() => setHoveredNodeId(null)}
+                className="cursor-pointer flex flex-col items-center justify-center select-none"
+                style={{
+                  width: `${pos.size}px`,
+                  height: `${pos.size}px`,
+                  borderRadius: pos.shape,
+                  background: `radial-gradient(circle at 35% 35%, rgba(255,255,255,0.2) 0%, transparent 60%), linear-gradient(135deg, ${palette.gradient})`,
+                  border: `1.5px solid ${palette.border}`,
+                  transformOrigin: "center center",
+                }}
+              >
+                {/* Star Core Dot */}
+                <div
+                  className="absolute w-2 h-2 rounded-full blur-[1px] opacity-85 top-2.5 right-3"
+                  style={{ background: palette.core }}
+                />
 
-              {/* Skill / Project Title */}
-              <span className="font-extrabold text-[11px] sm:text-xs text-white tracking-tight text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] px-2 leading-tight">
-                {node.name}
-              </span>
-
-              {/* Weight Pill for Major Blobs */}
-              {pos.size >= 90 && (
-                <span
-                  className="mt-1 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full opacity-85"
-                  style={{
-                    background: "rgba(0,0,0,0.45)",
-                    color: palette.text,
-                    border: `1px solid ${palette.border}`,
-                  }}
-                >
-                  {node.weight}%
+                {/* Skill / Project Title */}
+                <span className="font-extrabold text-[11px] sm:text-xs text-white tracking-tight text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] px-2 leading-tight">
+                  {node.name}
                 </span>
-              )}
-            </motion.div>
+
+                {/* Weight Pill for Major Blobs */}
+                {pos.size >= 90 && (
+                  <span
+                    className="mt-1 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full opacity-85"
+                    style={{
+                      background: "rgba(0,0,0,0.45)",
+                      color: palette.text,
+                      border: `1px solid ${palette.border}`,
+                    }}
+                  >
+                    {node.weight}%
+                  </span>
+                )}
+              </motion.div>
+            </div>
           );
         })}
       </div>
