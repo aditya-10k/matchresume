@@ -129,6 +129,12 @@ class ApplicationService:
         if user_id:
             prefs = db.query(UserPreference).filter(UserPreference.user_id == user_id).all()
             pref_strings = [f"{p.key}: {p.value}" for p in prefs]
+            prefs_dict = {p.key: p.value for p in prefs}
+            # Auto-inherit app-level default preset if not explicitly overridden
+            if preset_id == "classic_tech" and "default_preset_id" in prefs_dict:
+                preset_id = prefs_dict["default_preset_id"]
+            if not custom_template and "custom_template" in prefs_dict:
+                custom_template = prefs_dict["custom_template"]
 
         tailored_data = orchestrator.tailor_resume(
             requirements=requirements,

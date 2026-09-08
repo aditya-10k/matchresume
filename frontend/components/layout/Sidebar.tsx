@@ -20,6 +20,7 @@ import {
   User as UserIcon,
   LogOut,
   Sliders,
+  Layout,
 } from "lucide-react";
 import { checkBackendHealth } from "@/lib/api/resumes";
 import { useModel } from "@/context/ModelContext";
@@ -39,6 +40,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
   const [health, setHealth] = useState<{ status: string; mock_rag: boolean } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isPrefsOpen, setIsPrefsOpen] = useState(false);
+  const [prefsTab, setPrefsTab] = useState<"presets" | "rules">("presets");
 
   useEffect(() => {
     checkBackendHealth()
@@ -188,6 +190,23 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
                     type="button"
                     onClick={() => {
                       setMobileOpen(false);
+                      setPrefsTab("presets");
+                      setIsPrefsOpen(true);
+                    }}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900 text-xs font-semibold text-zinc-700 dark:text-zinc-200"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Layout className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Format Preset</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-500 font-medium">App Level</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      setPrefsTab("rules");
                       setIsPrefsOpen(true);
                     }}
                     className="flex items-center gap-2 rounded-xl px-3 py-2 border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900 text-xs font-semibold text-zinc-700 dark:text-zinc-200"
@@ -369,10 +388,29 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
                 </div>
               </button>
 
+              {/* Resume Preset Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setPrefsTab("presets");
+                  setIsPrefsOpen(true);
+                }}
+                className="w-full flex items-center justify-between rounded-xl px-2.5 py-1.5 border border-zinc-200/70 dark:border-white/10 bg-zinc-50/70 dark:bg-zinc-900/40 hover:border-orange-500/30 transition text-left text-[11px] text-zinc-700 dark:text-zinc-300"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Layout className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  <span className="font-semibold truncate">Format Preset</span>
+                </div>
+                <span className="text-[10px] text-zinc-500 font-medium shrink-0">App Level</span>
+              </button>
+
               {/* Preferences Button */}
               <button
                 type="button"
-                onClick={() => setIsPrefsOpen(true)}
+                onClick={() => {
+                  setPrefsTab("rules");
+                  setIsPrefsOpen(true);
+                }}
                 className="w-full flex items-center justify-between rounded-xl px-2.5 py-1.5 border border-zinc-200/70 dark:border-white/10 bg-zinc-50/70 dark:bg-zinc-900/40 hover:border-orange-500/30 transition text-left text-[11px] text-zinc-700 dark:text-zinc-300"
               >
                 <div className="flex items-center gap-2">
@@ -428,7 +466,22 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
 
               <button
                 type="button"
-                onClick={() => setIsPrefsOpen(true)}
+                onClick={() => {
+                  setPrefsTab("presets");
+                  setIsPrefsOpen(true);
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-500 hover:text-blue-500 hover:bg-blue-500/10 transition"
+                title="Format Presets (App Level)"
+              >
+                <Layout className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPrefsTab("rules");
+                  setIsPrefsOpen(true);
+                }}
                 className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-500 hover:text-orange-500 hover:bg-orange-500/10 transition"
                 title="Preferences & Memory"
               >
@@ -528,7 +581,11 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
       </aside>
 
       {/* Preferences Modal */}
-      <PreferencesModal isOpen={isPrefsOpen} onClose={() => setIsPrefsOpen(false)} />
+      <PreferencesModal
+        isOpen={isPrefsOpen}
+        onClose={() => setIsPrefsOpen(false)}
+        initialTab={prefsTab}
+      />
     </>
   );
 }
