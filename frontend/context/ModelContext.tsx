@@ -31,13 +31,21 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
 
   const selectedModel = AI_MODELS[selectedModelId] || AI_MODELS[DEFAULT_MODEL_ID];
 
-  // Apply CSS variables dynamically
+  // Apply CSS variables dynamically to document and root
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--orb-core", selectedModel.colors.primary);
     root.style.setProperty("--orb-glow", selectedModel.colors.secondary);
     root.style.setProperty("--card-border", selectedModel.colors.borderGlow);
     root.style.setProperty("--dynamic-mesh", selectedModel.colors.meshGradient);
+    root.style.setProperty("--scrollbar-thumb", selectedModel.colors.scrollbarThumb);
+    root.style.setProperty("--scrollbar-thumb-hover", selectedModel.colors.scrollbarThumbHover);
+    root.style.setProperty("--background", selectedModel.colors.bgColor);
+
+    if (document.body) {
+      document.body.style.backgroundColor = selectedModel.colors.bgColor;
+      document.body.style.backgroundImage = selectedModel.colors.meshGradient;
+    }
   }, [selectedModel]);
 
   return (
