@@ -1,23 +1,49 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useMemo, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { KnowledgeNode } from "@/lib/api/knowledge";
 import { useModel } from "@/context/ModelContext";
-import {
-  Code2,
-  Cpu,
-  Briefcase,
-  Compass,
-  Sparkles,
-  Search,
-  Filter,
-} from "lucide-react";
+import { Sparkles, Search, RefreshCw, Layers } from "lucide-react";
 
 interface FloatingBlobsCanvasProps {
   nodes: KnowledgeNode[];
   onSelectNode: (node: KnowledgeNode) => void;
   selectedNodeId?: string | null;
+}
+
+// Deterministic organic blob border-radius generator based on string seed
+function getOrganicBlobShape(seedStr: string, variant = 0): string {
+  let hash = 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    hash = (hash << 5) - hash + seedStr.charCodeAt(i) + variant * 17;
+    hash |= 0;
+  }
+  const p = (offset: number) => {
+    const val = Math.abs(Math.sin(hash + offset) * 10000) % 1;
+    return Math.floor(32 + val * 42); // between 32% and 74%
+  };
+  const r1 = p(1);
+  const r2 = p(2);
+  const r3 = p(3);
+  const r4 = p(4);
+  const r5 = p(5);
+  const r6 = p(6);
+  const r7 = p(7);
+  const r8 = p(8);
+  return `${r1}% ${100 - r1}% ${r2}% ${100 - r2}% / ${r3}% ${r4}% ${100 - r4}% ${100 - r3}%`;
+}
+
+interface StarNodePosition {
+  x: number; // percentage 4% to 94%
+  y: number; // percentage 5% to 92%
+  size: number;
+  shape1: string;
+  shape2: string;
+  floatDuration: number;
+  floatDelay: number;
+  driftX: number;
+  driftY: number;
 }
 
 export default function FloatingBlobsCanvas({
@@ -26,219 +52,339 @@ export default function FloatingBlobsCanvas({
   selectedNodeId,
 }: FloatingBlobsCanvasProps) {
   const { selectedModel } = useModel();
-  const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
-  const filteredNodes = useMemo(() => {
-    return nodes.filter((n) => {
-      const matchesCat = activeCategory === "all" || n.category === activeCategory;
-      const matchesSearch =
-        !searchQuery.trim() ||
-        n.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (n.sub_category && n.sub_category.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (n.highlight && n.highlight.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchesCat && matchesSearch;
+  // Compute organic scattered coordinates for each node (scattered like stars across deep space)
+  const nodePositions = useMemo(() => {
+    const posMap: Record<string, StarNodePosition> = {};
+    const n = nodes.length;
+    if (n === 0) return posMap;
+
+    // Use golden ratio spiral / dispersed galaxy clustering
+    nodes.forEach((node, i) => {
+      // Golden angle distribution for starry natural scatter
+      const angle = i * 2.39996; // golden angle in radians
+      const radiusFraction = Math.sqrt((i + 1) / (n + 2)); // square root for uniform disk spread
+
+      // Map to canvas bounds (with padding)
+      const centerX = 50;
+      const centerY = 50;
+      const spreadX = 42; // percentage spread
+      const spreadY = 40;
+
+      // Add pseudo-random organic jitter so it never looks like a sterile grid or perfect spiral
+      let seed = 0;
+      for (let c = 0; c < node.id.length; c++) seed += node.id.charCodeAt(c);
+      const jitterX = ((seed % 17) - 8) * 1.8;
+      const jitterY = (((seed * 7) % 19) - 9) * 1.8;
+
+      let x = centerX + Math.cos(angle) * (radiusFraction * spreadX) + jitterX;
+      let y = centerY + Math.sin(angle) * (radiusFraction * spreadY) + jitterY;
+
+      // Clamp safely inside canvas view
+      x = Math.max(5, Math.min(92, x));
+      y = Math.max(6, Math.min(90, y));
+
+      // Determine organic size based on weight and category
+      let baseSize = 75;
+      if (node.category === "domains") baseSize = 145;
+      else if (node.category === "projects") baseSize = 125;
+      else if (node.category === "experience") baseSize = 115;
+      else if (node.weight >= 75) baseSize = 92;
+      else if (node.weight < 60) baseSize = 68;
+
+      posMap[node.id] = {
+        x,
+        y,
+        size: baseSize,
+        shape1: getOrganicBlobShape(node.id, 1),
+        shape2: getOrganicBlobShape(node.id, 2),
+        floatDuration: 5 + (seed % 6) * 0.8,
+        floatDelay: (seed % 9) * 0.4,
+        driftX: ((seed % 7) - 3) * 3,
+        driftY: (((seed * 3) % 9) - 4) * 3.5,
+      };
     });
-  }, [nodes, activeCategory, searchQuery]);
 
-  const getNodeStyle = (node: KnowledgeNode) => {
+    return posMap;
+  }, [nodes]);
+
+  // Generate 60 ambient background stars
+  const backgroundStars = useMemo(() => {
+    return Array.from({ length: 65 }).map((_, i) => ({
+      id: i,
+      x: (i * 37) % 99,
+      y: (i * 73) % 97,
+      size: (i % 3 === 0 ? 3 : i % 2 === 0 ? 2 : 1),
+      opacity: 0.2 + ((i * 13) % 80) / 100,
+      blinkDuration: 2 + (i % 4) * 1.2,
+      delay: (i % 5) * 0.6,
+    }));
+  }, []);
+
+  const getNodePalette = (node: KnowledgeNode) => {
     switch (node.category) {
       case "skills":
         return {
-          bg: "from-emerald-500/20 to-teal-500/10",
-          border: "border-emerald-500/40 hover:border-emerald-400",
-          glow: "rgba(16, 185, 129, 0.35)",
-          text: "text-emerald-300",
-          dot: "bg-emerald-400",
-          tagBg: "bg-emerald-500/20 text-emerald-300",
+          gradient: "from-emerald-400/35 via-teal-600/25 to-cyan-950/60",
+          border: "rgba(52, 211, 153, 0.45)",
+          glow: "rgba(16, 185, 129, 0.55)",
+          text: "#a7f3d0",
+          core: "#34d399",
         };
       case "projects":
         return {
-          bg: "from-blue-500/20 to-cyan-500/10",
-          border: "border-blue-500/40 hover:border-blue-400",
-          glow: "rgba(59, 130, 246, 0.35)",
-          text: "text-blue-300",
-          dot: "bg-blue-400",
-          tagBg: "bg-blue-500/20 text-blue-300",
+          gradient: "from-cyan-400/35 via-blue-600/25 to-indigo-950/60",
+          border: "rgba(56, 189, 248, 0.45)",
+          glow: "rgba(6, 182, 212, 0.55)",
+          text: "#bae6fd",
+          core: "#38bdf8",
         };
       case "experience":
         return {
-          bg: "from-amber-500/20 to-orange-500/10",
-          border: "border-amber-500/40 hover:border-amber-400",
-          glow: "rgba(245, 158, 11, 0.35)",
-          text: "text-amber-300",
-          dot: "bg-amber-400",
-          tagBg: "bg-amber-500/20 text-amber-300",
+          gradient: "from-amber-400/35 via-orange-600/25 to-rose-950/60",
+          border: "rgba(251, 191, 36, 0.45)",
+          glow: "rgba(245, 158, 11, 0.55)",
+          text: "#fde68a",
+          core: "#fbbf24",
         };
       case "domains":
       default:
         return {
-          bg: "from-purple-500/20 to-pink-500/10",
-          border: "border-purple-500/40 hover:border-purple-400",
-          glow: "rgba(139, 92, 246, 0.35)",
-          text: "text-purple-300",
-          dot: "bg-purple-400",
-          tagBg: "bg-purple-500/20 text-purple-300",
+          gradient: "from-fuchsia-400/40 via-purple-600/30 to-indigo-950/65",
+          border: "rgba(232, 121, 249, 0.5)",
+          glow: "rgba(217, 70, 239, 0.6)",
+          text: "#f5d0fe",
+          core: "#e879f9",
         };
     }
   };
 
+  // Find connections between nodes for faint glowing constellation lines
+  const constellationLines = useMemo(() => {
+    const lines: { x1: number; y1: number; x2: number; y2: number; color: string; id: string }[] = [];
+    nodes.forEach((node) => {
+      const p1 = nodePositions[node.id];
+      if (!p1) return;
+      if (node.related_nodes && node.related_nodes.length > 0) {
+        node.related_nodes.slice(0, 3).forEach((relName) => {
+          const targetNode = nodes.find((n) => n.name.toLowerCase() === relName.toLowerCase());
+          if (targetNode && targetNode.id !== node.id) {
+            const p2 = nodePositions[targetNode.id];
+            if (p2) {
+              const lineKey = [node.id, targetNode.id].sort().join("--");
+              if (!lines.find((l) => l.id === lineKey)) {
+                lines.push({
+                  id: lineKey,
+                  x1: p1.x,
+                  y1: p1.y,
+                  x2: p2.x,
+                  y2: p2.y,
+                  color: getNodePalette(node).core,
+                });
+              }
+            }
+          }
+        });
+      }
+    });
+    return lines;
+  }, [nodes, nodePositions]);
+
+  const activeHoveredNode = useMemo(() => {
+    return nodes.find((n) => n.id === hoveredNodeId) || null;
+  }, [nodes, hoveredNodeId]);
+
   return (
-    <div className="flex flex-col h-full space-y-4">
-      {/* Search & Category Filter Command Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white/70 dark:bg-zinc-950/70 border border-zinc-200 dark:border-white/10 backdrop-blur-xl shrink-0 shadow-lg">
-        {/* Category Pills */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {[
-            { id: "all", label: "All Universe", icon: Sparkles },
-            { id: "skills", label: "Skills", icon: Code2 },
-            { id: "projects", label: "Projects", icon: Cpu },
-            { id: "experience", label: "Experience", icon: Briefcase },
-            { id: "domains", label: "Domains", icon: Compass },
-          ].map((cat) => {
-            const Icon = cat.icon;
-            const isActive = activeCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  isActive
-                    ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-md scale-105"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span>{cat.label}</span>
-                <span className="text-[10px] opacity-70">
-                  (
-                  {cat.id === "all"
-                    ? nodes.length
-                    : nodes.filter((n) => n.category === cat.id).length}
-                  )
-                </span>
-              </button>
-            );
-          })}
+    <div className="relative w-full h-full min-h-[640px] rounded-3xl overflow-hidden bg-[#05060d] border border-white/10 shadow-2xl flex flex-col justify-between select-none">
+      {/* Deep Space Background Ambient Glows */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#0c122a] via-[#05060d] to-[#020307] pointer-events-none" />
+
+      {/* Atmospheric Nebulae */}
+      <div
+        className="absolute top-1/4 left-1/5 w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 pointer-events-none"
+        style={{ background: selectedModel.colors.primary }}
+      />
+      <div className="absolute bottom-1/4 right-1/5 w-[450px] h-[450px] rounded-full blur-[140px] opacity-15 bg-cyan-500 pointer-events-none" />
+
+      {/* Starfield Layer (Twinkling ambient dots) */}
+      <div className="absolute inset-0 pointer-events-none">
+        {backgroundStars.map((star) => (
+          <motion.div
+            key={star.id}
+            animate={{ opacity: [star.opacity, star.opacity * 0.2, star.opacity] }}
+            transition={{
+              duration: star.blinkDuration,
+              repeat: Infinity,
+              delay: star.delay,
+              ease: "easeInOut",
+            }}
+            className="absolute rounded-full bg-white"
+            style={{
+              left: `${star.x}%`,
+              top: `${star.y}%`,
+              width: `${star.size}px`,
+              height: `${star.size}px`,
+              boxShadow: star.size > 1 ? "0 0 6px rgba(255,255,255,0.8)" : "none",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Subtle Constellation Connection Lines */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+        {constellationLines.map((line) => (
+          <line
+            key={line.id}
+            x1={`${line.x1}%`}
+            y1={`${line.y1}%`}
+            x2={`${line.x2}%`}
+            y2={`${line.y2}%`}
+            stroke={line.color}
+            strokeWidth="1"
+            strokeDasharray="4 4"
+            opacity="0.18"
+          />
+        ))}
+      </svg>
+
+      {/* Floating Starry Control Pill (Minimalist, unobtrusive) */}
+      <div className="absolute top-4 left-5 right-5 z-20 flex items-center justify-between pointer-events-none">
+        <div className="flex items-center gap-2 pointer-events-auto bg-black/60 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/10 shadow-lg">
+          <Sparkles className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
+          <span className="text-xs font-bold text-white tracking-wide">
+            {nodes.length} Star Blobs
+          </span>
+          <span className="text-[10px] text-zinc-400 border-l border-white/10 pl-2">
+            Click any star to enlarge
+          </span>
         </div>
 
-        {/* Live Search */}
-        <div className="relative w-full sm:w-64">
+        {/* Search bar floating lightly */}
+        <div className="relative pointer-events-auto w-48 sm:w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
           <input
             type="text"
-            placeholder="Search verified skills & projects..."
+            placeholder="Search star cosmos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl text-xs bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 focus:outline-none focus:ring-1 transition-all text-zinc-900 dark:text-white placeholder:text-zinc-400"
-            style={{
-              borderColor: searchQuery ? selectedModel.colors.primary : undefined,
-            }}
+            className="w-full pl-9 pr-3 py-1.5 rounded-full text-xs bg-black/60 backdrop-blur-xl border border-white/10 text-white placeholder:text-zinc-500 focus:outline-none focus:border-cyan-500/50 shadow-lg transition-all"
           />
         </div>
       </div>
 
-      {/* Floating Blobs Universe Surface */}
-      <div className="relative flex-1 min-h-[550px] rounded-3xl border border-zinc-200 dark:border-white/10 bg-gradient-to-b from-zinc-50/50 to-zinc-100/50 dark:from-zinc-950/80 dark:to-black/80 backdrop-blur-2xl p-6 overflow-hidden flex flex-col justify-center items-center shadow-2xl">
-        {/* Constellation Grid Background */}
-        <div
-          className="absolute inset-0 opacity-15 pointer-events-none"
-          style={{
-            backgroundImage: `radial-gradient(${selectedModel.colors.primary} 1px, transparent 1px)`,
-            backgroundSize: "28px 28px",
-          }}
-        />
+      {/* Scattered Organic Floating Blobs Stage */}
+      <div className="relative w-full h-full flex-1 z-10 overflow-hidden">
+        {nodes.map((node) => {
+          const pos = nodePositions[node.id];
+          if (!pos) return null;
 
-        {/* Ambient Center Glow */}
-        <div
-          className="absolute w-96 h-96 rounded-full blur-3xl opacity-15 pointer-events-none"
-          style={{ background: selectedModel.colors.primary }}
-        />
+          const palette = getNodePalette(node);
+          const isHighlighted =
+            searchQuery.trim() === "" ||
+            node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (node.sub_category && node.sub_category.toLowerCase().includes(searchQuery.toLowerCase()));
 
-        {filteredNodes.length === 0 ? (
-          <div className="relative z-10 flex flex-col items-center justify-center p-8 text-center">
-            <Sparkles className="h-10 w-10 text-zinc-400 mb-3 animate-pulse" />
-            <h3 className="text-base font-bold text-zinc-700 dark:text-zinc-300">
-              No matching knowledge nodes found
-            </h3>
-            <p className="text-xs text-zinc-400 mt-1 max-w-sm">
-              Try adjusting your search query or switching categories.
-            </p>
-          </div>
-        ) : (
-          <div className="relative z-10 w-full h-full flex flex-wrap items-center justify-center gap-3.5 sm:gap-4 p-2 overflow-y-auto max-h-[620px]">
-            {filteredNodes.map((node, index) => {
-              const style = getNodeStyle(node);
-              // Calculate dynamic sizing based on weight
-              const isLarge = node.weight >= 85;
-              const isMedium = node.weight >= 65 && node.weight < 85;
-              
-              // Organic floating animation parameters based on index
-              const duration = 4 + (index % 5) * 0.8;
-              const delay = (index % 7) * 0.3;
-              const yOffset = (index % 2 === 0 ? 1 : -1) * (6 + (index % 4) * 2);
+          const isHovered = hoveredNodeId === node.id;
 
-              return (
-                <motion.div
-                  key={node.id}
-                  layoutId={`blob-${node.id}`}
-                  animate={{
-                    y: [0, yOffset, 0],
-                  }}
-                  transition={{
-                    duration: duration,
-                    repeat: Infinity,
-                    repeatType: "reverse",
-                    ease: "easeInOut",
-                    delay: delay,
-                  }}
-                  whileHover={{ scale: 1.08, zIndex: 30 }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => onSelectNode(node)}
-                  className={`cursor-pointer group relative rounded-2xl sm:rounded-3xl border bg-gradient-to-br ${style.bg} ${style.border} backdrop-blur-xl shadow-lg transition-all duration-300 flex flex-col justify-between ${
-                    isLarge
-                      ? "p-4 sm:p-5 min-w-[170px] sm:min-w-[210px] min-h-[95px]"
-                      : isMedium
-                      ? "p-3.5 sm:p-4 min-w-[140px] sm:min-w-[170px] min-h-[80px]"
-                      : "p-3 min-w-[120px] sm:min-w-[140px] min-h-[70px]"
-                  }`}
+          return (
+            <motion.div
+              key={node.id}
+              drag
+              dragConstraints={{ left: -40, right: 40, top: -40, bottom: 40 }}
+              dragElastic={0.15}
+              animate={{
+                x: [0, pos.driftX, -pos.driftX * 0.6, 0],
+                y: [0, pos.driftY, -pos.driftY * 0.8, 0],
+                borderRadius: [pos.shape1, pos.shape2, pos.shape1],
+              }}
+              transition={{
+                duration: pos.floatDuration,
+                repeat: Infinity,
+                delay: pos.floatDelay,
+                ease: "easeInOut",
+              }}
+              whileHover={{ scale: 1.22, zIndex: 40 }}
+              whileTap={{ scale: 0.94 }}
+              onClick={() => onSelectNode(node)}
+              onMouseEnter={() => setHoveredNodeId(node.id)}
+              onMouseLeave={() => setHoveredNodeId(null)}
+              className={`absolute cursor-pointer flex flex-col items-center justify-center transition-opacity duration-300 ${
+                isHighlighted ? "opacity-100" : "opacity-25"
+              }`}
+              style={{
+                left: `${pos.x}%`,
+                top: `${pos.y}%`,
+                width: `${pos.size}px`,
+                height: `${pos.size}px`,
+                transform: "translate(-50%, -50%)",
+                background: `radial-gradient(circle at 35% 35%, rgba(255,255,255,0.22) 0%, transparent 60%), linear-gradient(135deg, ${palette.gradient})`,
+                border: `1.5px solid ${palette.border}`,
+                boxShadow: isHovered
+                  ? `0 0 45px 12px ${palette.glow}, inset 0 0 20px rgba(255,255,255,0.3)`
+                  : `0 0 25px 4px ${palette.glow}, inset 0 0 10px rgba(255,255,255,0.15)`,
+                zIndex: isHovered ? 50 : Math.floor(pos.size),
+              }}
+            >
+              {/* Inner ambient star core */}
+              <div
+                className="absolute w-2 h-2 rounded-full blur-[1px] opacity-75 top-2.5 right-3"
+                style={{ background: palette.core }}
+              />
+
+              {/* Title inside blob */}
+              <span className="font-extrabold text-[11px] sm:text-xs text-white tracking-tight text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] px-2 leading-tight select-none">
+                {node.name}
+              </span>
+
+              {/* Subtle category or percentage badge for larger nodes */}
+              {pos.size >= 85 && (
+                <span
+                  className="mt-1 text-[9px] font-bold font-mono px-1.5 py-0.2 rounded-full opacity-80"
                   style={{
-                    boxShadow: `0 8px 25px -6px ${style.glow}`,
+                    background: "rgba(0,0,0,0.4)",
+                    color: palette.text,
+                    border: `1px solid ${palette.border}`,
                   }}
                 >
-                  {/* Subtle inner light orb */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-1.5">
-                      <span className={`h-2 w-2 rounded-full animate-pulse ${style.dot}`} />
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                        {node.sub_category || node.category}
-                      </span>
-                    </span>
-                    <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md ${style.tagBg}`}>
-                      {node.weight}%
-                    </span>
-                  </div>
-
-                  <div className="my-1.5">
-                    <h4 className="font-extrabold text-sm sm:text-base text-zinc-900 dark:text-white tracking-tight group-hover:text-white transition-colors">
-                      {node.name}
-                    </h4>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
-                    <span className="truncate max-w-[110px] sm:max-w-[140px] text-[10px] opacity-80">
-                      {node.level}
-                    </span>
-                    <span className="text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-zinc-300">
-                      Inspect &rarr;
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
+                  {node.weight}%
+                </span>
+              )}
+            </motion.div>
+          );
+        })}
       </div>
+
+      {/* Floating Bottom Insight Bar when Hovering any Blob */}
+      <AnimatePresence>
+        {activeHoveredNode && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 max-w-xl w-[90%] bg-black/80 backdrop-blur-2xl px-4 py-2.5 rounded-2xl border border-white/15 shadow-2xl flex items-center justify-between gap-4 pointer-events-none"
+          >
+            <div className="flex items-center gap-2.5 truncate">
+              <span
+                className="h-2.5 w-2.5 rounded-full shrink-0 animate-pulse"
+                style={{ background: getNodePalette(activeHoveredNode).core }}
+              />
+              <div className="truncate">
+                <span className="font-black text-white text-xs mr-2">
+                  {activeHoveredNode.name}
+                </span>
+                <span className="text-[11px] text-zinc-400 truncate">
+                  {activeHoveredNode.highlight}
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold text-cyan-400 shrink-0 uppercase tracking-wider">
+              Click to Open &rarr;
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
