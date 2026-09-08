@@ -118,7 +118,7 @@ def list_resumes(
     """Retrieve all uploaded resumes for the current user."""
     resumes = (
         db.query(Resume)
-        .filter((Resume.user_id == current_user.id) | (Resume.user_id == None))
+        .filter(Resume.user_id == current_user.id)
         .order_by(Resume.created_at.desc())
         .all()
     )

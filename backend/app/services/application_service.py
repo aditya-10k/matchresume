@@ -34,13 +34,13 @@ class ApplicationService:
     def get_application(self, db: Session, application_id: str, user_id: Optional[str] = None) -> Optional[Application]:
         query = db.query(Application).filter(Application.id == application_id)
         if user_id:
-            query = query.filter((Application.user_id == user_id) | (Application.user_id == None))
+            query = query.filter(Application.user_id == user_id)
         return query.first()
 
     def list_applications(self, db: Session, user_id: Optional[str] = None) -> List[Application]:
         query = db.query(Application)
         if user_id:
-            query = query.filter((Application.user_id == user_id) | (Application.user_id == None))
+            query = query.filter(Application.user_id == user_id)
         return query.order_by(Application.created_at.desc()).all()
 
     def analyze_application(
@@ -55,10 +55,10 @@ class ApplicationService:
         if not application:
             raise ValueError(f"Application {application_id} not found")
 
-        # Query resumes scoped to user or shared
+        # Query resumes scoped to user
         resume_query = db.query(Resume)
         if user_id:
-            resume_query = resume_query.filter((Resume.user_id == user_id) | (Resume.user_id == None))
+            resume_query = resume_query.filter(Resume.user_id == user_id)
         available_resumes = resume_query.all()
 
         # Load user preferences (memory)
