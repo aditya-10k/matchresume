@@ -90,12 +90,8 @@ class ChromaStore(BaseVectorStore):
                 include=["documents", "metadatas", "distances"]
             )
         except Exception as e:
-            logger.warning(f"ChromaDB query with filters failed ({e}), attempting without filters...")
-            results = self.collection.query(
-                query_embeddings=[query_embedding],
-                n_results=limit,
-                include=["documents", "metadatas", "distances"]
-            )
+            logger.error(f"ChromaDB query failed: {e}")
+            return []
 
         output = []
         if results and results["ids"] and len(results["ids"][0]) > 0:
@@ -121,9 +117,14 @@ class ChromaStore(BaseVectorStore):
     def get_user_chunks(
         self,
         user_id: Optional[str] = None,
-        resume_id: Optional[str] = None
+        resume_id: Optional[str] = None,
+        allow_all: bool = False
     ) -> List[Dict[str, Any]]:
-        """Retrieves all indexed chunks for a candidate or resume to construct the Knowledge Graph."""
+        """Retrieves indexed chunks for a candidate or resume to construct the Knowledge Graph."""
+        if not user_id and not resume_id and not allow_all:
+            # Multi-tenant guard: refuse un-scoped dump across all users unless explicitly permitted
+            return []
+
         where_clause = None
         filters = {}
         if user_id:
@@ -142,8 +143,9 @@ class ChromaStore(BaseVectorStore):
                 where=where_clause,
                 include=["documents", "metadatas"]
             )
-        except Exception:
-            data = self.collection.get(include=["documents", "metadatas"])
+        except Exception as e:
+            logger.error(f"Failed to fetch chunks from ChromaDB: {e}")
+            return []
 
         output = []
         if data and data.get("ids"):

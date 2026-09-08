@@ -184,16 +184,23 @@ def get_knowledge_universe(
         backfill_existing_resumes()
 
     raw_chunks = store.get_user_chunks(user_id=current_user.id)
-    if not raw_chunks:
-        raw_chunks = store.get_user_chunks()
-
     candidate_name = getattr(current_user, "name", None) or "Candidate"
     
     if not raw_chunks:
         user_resume = db.query(Resume).filter(Resume.user_id == current_user.id).first()
         if user_resume and user_resume.raw_text:
-            backfill_existing_resumes()
-            raw_chunks = store.get_user_chunks()
+            from app.rag import ingest_resume
+            meta = {
+                "source": user_resume.filename or f"{user_resume.name}.pdf",
+                "name": user_resume.name,
+                "user_id": current_user.id,
+                "resume_id": user_resume.id
+            }
+            try:
+                ingest_resume(user_resume.raw_text, user_resume.id, metadata=meta)
+                raw_chunks = store.get_user_chunks(user_id=current_user.id)
+            except Exception as e:
+                logger.error(f"Failed to ingest resume for knowledge universe: {e}")
             if user_resume.name:
                 candidate_name = user_resume.name
 

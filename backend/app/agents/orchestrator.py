@@ -17,6 +17,7 @@ logger = logging.getLogger("orchestrator")
 
 class AgentState(TypedDict, total=False):
     application_id: str
+    user_id: Optional[str]
     jd_text: str
     available_resumes: List[Any]
     agent_enabled: bool
@@ -70,9 +71,13 @@ def jd_analyzer_node(state: AgentState) -> Dict[str, Any]:
 
 
 def rag_retrieval_node(state: AgentState) -> Dict[str, Any]:
-    """Node 3: Retrieves factual evidence chunks from the RAG layer."""
-    logger.info("LangGraph [Node 3]: RAG Retrieval querying context...")
+    """Node 3: Retrieves factual evidence chunks strictly for candidate's resumes."""
+    logger.info("LangGraph [Node 3]: RAG Retrieval querying context with user tenant scoping...")
     requirements = state["requirements"]
+    user_id = state.get("user_id")
+    available_resumes = state.get("available_resumes", [])
+    allowed_resume_ids = {r.id for r in available_resumes if hasattr(r, "id")}
+    
     collected_evidence: List[EvidenceChunk] = []
     seen_content = set()
 
@@ -80,8 +85,11 @@ def rag_retrieval_node(state: AgentState) -> Dict[str, Any]:
     for term in search_terms[:5]:
         if not term:
             continue
-        chunks = retrieve_context(query=term, top_k=3)
+        chunks = retrieve_context(query=term, user_id=user_id, top_k=3)
         for chunk in chunks:
+            # Multi-tenant defense in depth: ensure chunk belongs to allowed resume IDs if provided
+            if allowed_resume_ids and hasattr(chunk, "resume_id") and chunk.resume_id not in allowed_resume_ids:
+                continue
             if chunk.content not in seen_content:
                 seen_content.add(chunk.content)
                 collected_evidence.append(chunk)
@@ -146,9 +154,11 @@ class AnalysisOrchestrator:
         groq_api_key: Optional[str] = None,
         user_preferences: Optional[List[str]] = None,
         groq_model: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> AnalysisResponse:
         initial_state: AgentState = {
             "application_id": application_id,
+            "user_id": user_id,
             "jd_text": jd_text,
             "available_resumes": available_resumes,
             "agent_enabled": agent_enabled,

@@ -53,6 +53,7 @@ class ResumeRetriever(BaseRetriever):
     def retrieve(
         self,
         query: str,
+        user_id: Optional[str] = None,
         resume_id: Optional[str] = None,
         section: Optional[str] = None,
         top_k: int = 8
@@ -68,10 +69,12 @@ class ResumeRetriever(BaseRetriever):
                 q_vec = embed_service.embed_query(query)
 
                 filters = {}
+                if user_id:
+                    filters["user_id"] = str(user_id)
                 if resume_id:
-                    filters["resume_id"] = resume_id
+                    filters["resume_id"] = str(resume_id)
                 if section:
-                    filters["section"] = section
+                    filters["section"] = str(section)
 
                 raw_results = store.query(query_embedding=q_vec, top_k=top_k * 2, filters=filters)
                 if raw_results:
@@ -106,14 +109,21 @@ class ResumeRetriever(BaseRetriever):
         except Exception as e:
             logger.warning(f"Vector search failed ({e}); falling back to lexical BM25 retrieval.")
 
-        # 2. Fallback: Lexical BM25 retrieval from SQLite
+        # 2. Fallback: Lexical BM25 retrieval from DB
         query_tokens = tokenize(query)
         if not query_tokens:
+            return []
+
+        # Multi-tenant safety check: never run global BM25 if neither user_id nor resume_id is known
+        if not user_id and not resume_id:
+            logger.warning("BM25 retrieval skipped: neither user_id nor resume_id provided (multi-tenant guard).")
             return []
 
         db = SessionLocal()
         try:
             query_filter = db.query(Resume)
+            if user_id:
+                query_filter = query_filter.filter(Resume.user_id == user_id)
             if resume_id:
                 query_filter = query_filter.filter(Resume.id == resume_id)
             resumes = query_filter.all()
@@ -127,7 +137,7 @@ class ResumeRetriever(BaseRetriever):
         for r in resumes:
             if not r.raw_text:
                 continue
-            r_meta = {"source": r.file_path or f"{r.name}.pdf", "resume_name": r.name, "resume_id": r.id}
+            r_meta = {"source": r.file_path or f"{r.name}.pdf", "resume_name": r.name, "resume_id": r.id, "user_id": r.user_id or ""}
             chunks = chunk_resume(r.raw_text, resume_id=r.id, metadata=r_meta)
             for c in chunks:
                 if section and c.section.lower() != section.lower():
@@ -170,13 +180,15 @@ class ResumeRetriever(BaseRetriever):
 
 def retrieve_context(
     query: str,
+    user_id: Optional[str] = None,
     resume_id: Optional[str] = None,
     section: Optional[str] = None,
     top_k: int = 8
 ) -> List[EvidenceChunk]:
     """
     Canonical retrieval entrypoint.
-    Returns verified, grounded evidence chunks from ChromaDB or BM25 fallback.
+    Returns verified, grounded evidence chunks from ChromaDB or BM25 fallback,
+    strictly scoped to user_id and/or resume_id.
     """
     retriever = ResumeRetriever()
-    return retriever.retrieve(query=query, resume_id=resume_id, section=section, top_k=top_k)
+    return retriever.retrieve(query=query, user_id=user_id, resume_id=resume_id, section=section, top_k=top_k)

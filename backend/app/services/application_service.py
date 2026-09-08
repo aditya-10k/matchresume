@@ -74,7 +74,8 @@ class ApplicationService:
             agent_enabled=application.agent_enabled,
             groq_api_key=groq_api_key,
             user_preferences=pref_strings,
-            groq_model=groq_model
+            groq_model=groq_model,
+            user_id=user_id,
         )
 
         # Update application state
@@ -121,7 +122,7 @@ class ApplicationService:
 
         evidence_chunks = []
         for term in requirements.required_skills[:4]:
-            chunks = retrieve_context(query=term, resume_id=selected_resume.id, top_k=2)
+            chunks = retrieve_context(query=term, user_id=user_id, resume_id=selected_resume.id, top_k=2)
             evidence_chunks.extend(chunks)
 
         # Load user preferences (memory)

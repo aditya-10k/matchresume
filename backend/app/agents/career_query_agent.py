@@ -70,17 +70,15 @@ Return valid JSON matching this schema:
         retriever = ResumeRetriever()
         store = get_vector_store()
         
-        # 1. Retrieve Candidate Vector Chunks from ChromaDB
-        raw_chunks = retriever.retrieve(query=query, top_k=top_k)
+        # 1. Retrieve Candidate Vector Chunks from ChromaDB strictly scoped to user_id
+        raw_chunks = retriever.retrieve(query=query, user_id=user_id, top_k=top_k)
 
-        # Check if database has any resumes for this user
+        # Check if database has any resumes for this specific user
         db = SessionLocal()
         user_resumes = []
         try:
-            query_filter = [Resume.user_id == user_id] if user_id else []
-            user_resumes = db.query(Resume).filter(*query_filter).all()
-            if not user_resumes:
-                user_resumes = db.query(Resume).all()
+            if user_id:
+                user_resumes = db.query(Resume).filter(Resume.user_id == user_id).all()
         finally:
             db.close()
 

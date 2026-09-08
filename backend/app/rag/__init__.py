@@ -93,6 +93,7 @@ def backfill_existing_resumes() -> int:
 
 def retrieve_context(
     query: str,
+    user_id: Optional[str] = None,
     resume_id: Optional[str] = None,
     section: Optional[str] = None,
     top_k: int = 8
@@ -101,4 +102,4 @@ def retrieve_context(
     High-level retrieval hook used by Agents and Tools.
     Returns authentic evidence chunks from the user's verified uploaded resumes.
     """
-    return real_retrieve_context(query=query, resume_id=resume_id, section=section, top_k=top_k)
+    return real_retrieve_context(query=query, user_id=user_id, resume_id=resume_id, section=section, top_k=top_k)
