@@ -178,8 +178,8 @@ export default function DashboardPage() {
             <FileText className="h-4 w-4" />
           </Link>
 
-          {/* Model Selector Trigger inside Dock */}
-          <ModelSelector />
+          {/* Model Selector Trigger inside Dock (opens upwards) */}
+          <ModelSelector direction="up" />
 
           {/* Input text field */}
           <input

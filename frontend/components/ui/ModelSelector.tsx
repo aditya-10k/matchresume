@@ -2,10 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Check, Sparkles, Cpu } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
 import { useModel } from "@/context/ModelContext";
 
-export default function ModelSelector() {
+interface ModelSelectorProps {
+  direction?: "up" | "down";
+}
+
+export default function ModelSelector({ direction = "down" }: ModelSelectorProps) {
   const { selectedModel, selectedModelId, setSelectedModelId, availableModels } = useModel();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -21,14 +25,20 @@ export default function ModelSelector() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const positionClasses =
+    direction === "up"
+      ? "bottom-full mb-2.5 left-0 sm:left-auto sm:right-0 origin-bottom"
+      : "top-full mt-2.5 right-0 origin-top";
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Trigger Pill Button */}
       <button
+        type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center gap-2 rounded-full border border-white/10 bg-black/60 px-3.5 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-xl hover:border-white/20 transition-all"
+        className="flex items-center gap-2 rounded-full border border-white/15 bg-black/75 px-3.5 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-xl hover:border-white/30 active:scale-95 transition-all"
         style={{
-          boxShadow: `0 0 15px ${selectedModel.colors.primary}20`,
+          boxShadow: `0 0 15px ${selectedModel.colors.primary}25`,
         }}
       >
         {/* Glowing theme color dot */}
@@ -52,17 +62,21 @@ export default function ModelSelector() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            initial={{ opacity: 0, y: direction === "up" ? 8 : -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ duration: 0.18 }}
-            className="absolute bottom-full mb-3 left-0 sm:left-auto sm:right-0 z-50 w-72 sm:w-80 overflow-hidden rounded-3xl border border-white/15 bg-black/85 p-2 shadow-2xl backdrop-blur-2xl"
+            exit={{ opacity: 0, y: direction === "up" ? 8 : -8, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className={`absolute z-[100] w-72 sm:w-80 overflow-hidden rounded-3xl border border-white/20 bg-zinc-950/95 p-2 shadow-2xl backdrop-blur-3xl ${positionClasses}`}
             style={{
-              boxShadow: `0 20px 50px rgba(0,0,0,0.9), 0 0 30px ${selectedModel.colors.primary}15`,
+              boxShadow: `0 25px 60px rgba(0,0,0,0.95), 0 0 35px ${selectedModel.colors.primary}25`,
             }}
           >
-            <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-white/10">
-              Select Agent Intelligence Model
+            <div className="px-3.5 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-400 border-b border-white/10 flex items-center justify-between">
+              <span>Switch Intelligence Model</span>
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: selectedModel.colors.primary }}
+              />
             </div>
 
             <div className="mt-1 flex flex-col gap-1">
@@ -71,22 +85,23 @@ export default function ModelSelector() {
                 return (
                   <button
                     key={model.id}
+                    type="button"
                     onClick={() => {
                       setSelectedModelId(model.id);
                       setIsOpen(false);
                     }}
-                    className={`flex items-start gap-3 rounded-2xl p-2.5 text-left transition-all ${
+                    className={`group flex items-start gap-3 rounded-2xl p-2.5 text-left transition-all ${
                       isSelected
-                        ? "bg-white/10 border border-white/15"
+                        ? "bg-white/10 border border-white/20"
                         : "hover:bg-white/5 border border-transparent"
                     }`}
                   >
                     {/* Glowing Model Indicator */}
                     <div
-                      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl"
+                      className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110"
                       style={{
                         background: `${model.colors.primary}20`,
-                        border: `1px solid ${model.colors.primary}40`,
+                        border: `1px solid ${model.colors.primary}45`,
                       }}
                     >
                       <span
@@ -104,10 +119,11 @@ export default function ModelSelector() {
                           {model.name}
                         </span>
                         <span
-                          className="rounded-full px-1.5 py-0.2 text-[9px] font-medium"
+                          className="rounded-full px-2 py-0.5 text-[9px] font-semibold"
                           style={{
                             color: model.colors.primary,
-                            background: `${model.colors.primary}15`,
+                            background: `${model.colors.primary}18`,
+                            border: `1px solid ${model.colors.primary}30`,
                           }}
                         >
                           {model.provider}
