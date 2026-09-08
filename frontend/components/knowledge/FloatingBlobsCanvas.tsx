@@ -12,7 +12,7 @@ interface FloatingBlobsCanvasProps {
   selectedNodeId?: string | null;
 }
 
-// Deterministic organic blob border-radius generator
+// Deterministic organic blob border-radius generator based on seed
 function getOrganicBlobShape(seedStr: string): string {
   let hash = 0;
   for (let i = 0; i < seedStr.length; i++) {
@@ -58,11 +58,9 @@ export default function FloatingBlobsCanvas({
     const count = nodes.length;
     if (count === 0) return posMap;
 
-    // 1. Initial wide scatter across 4 quadrants/clusters of the entire screen
+    // Grid-seed distribution across full canvas width and height
     const points: { x: number; y: number; id: string; size: number }[] = [];
-
-    // Rows and columns grid-seed for broad full-screen distribution
-    const cols = Math.ceil(Math.sqrt(count * 1.6));
+    const cols = Math.ceil(Math.sqrt(count * 1.8));
     const rows = Math.ceil(count / cols);
 
     nodes.forEach((node, i) => {
@@ -72,19 +70,18 @@ export default function FloatingBlobsCanvas({
       const col = i % cols;
       const row = Math.floor(i / cols);
 
-      // Base coordinate from cell
-      const baseCellX = 7 + (col / (cols - 1 || 1)) * 86;
-      const baseCellY = 8 + (row / (rows - 1 || 1)) * 84;
+      // Distribute from 5% to 94% horizontally, and 6% to 92% vertically
+      const baseCellX = 6 + (col / (cols - 1 || 1)) * 86;
+      const baseCellY = 7 + (row / (rows - 1 || 1)) * 84;
 
-      // Jitter
-      const jitterX = (((seed * 13) % 21) - 10) * 1.5;
-      const jitterY = (((seed * 29) % 21) - 10) * 1.5;
+      const jitterX = (((seed * 13) % 23) - 11) * 1.6;
+      const jitterY = (((seed * 29) % 23) - 11) * 1.6;
 
       let x = baseCellX + jitterX;
       let y = baseCellY + jitterY;
 
-      x = Math.max(6, Math.min(94, x));
-      y = Math.max(7, Math.min(93, y));
+      x = Math.max(5, Math.min(94, x));
+      y = Math.max(6, Math.min(93, y));
 
       let baseSize = 80;
       if (node.category === "domains") baseSize = 135;
@@ -96,36 +93,34 @@ export default function FloatingBlobsCanvas({
       points.push({ x, y, id: node.id, size: baseSize });
     });
 
-    // 2. Physics-based pairwise repulsion relaxation to prevent clumps
-    const iterations = 35;
+    // Pairwise repulsion relaxation to guarantee wide dispersion across the sky
+    const iterations = 40;
     for (let iter = 0; iter < iterations; iter++) {
       for (let i = 0; i < points.length; i++) {
         for (let j = i + 1; j < points.length; j++) {
           const dx = points[i].x - points[j].x;
           const dy = points[i].y - points[j].y;
-          // Scale distance in percentage space (aspect ratio correction approx 1.6)
           const dist = Math.sqrt((dx * 1.6) * (dx * 1.6) + dy * dy);
-          const minDist = ((points[i].size + points[j].size) / 2) * 0.14; // minimum buffer
+          const minDist = ((points[i].size + points[j].size) / 2) * 0.15;
 
           if (dist < minDist && dist > 0.001) {
             const overlap = (minDist - dist) / dist;
-            const force = overlap * 0.35;
+            const force = overlap * 0.38;
             points[i].x += dx * force;
             points[i].y += dy * force;
             points[j].x -= dx * force;
             points[j].y -= dy * force;
 
-            points[i].x = Math.max(5, Math.min(95, points[i].x));
-            points[i].y = Math.max(6, Math.min(94, points[i].y));
-            points[j].x = Math.max(5, Math.min(95, points[j].x));
-            points[j].y = Math.max(6, Math.min(94, points[j].y));
+            points[i].x = Math.max(5, Math.min(94, points[i].x));
+            points[i].y = Math.max(6, Math.min(93, points[i].y));
+            points[j].x = Math.max(5, Math.min(94, points[j].x));
+            points[j].y = Math.max(6, Math.min(93, points[j].y));
           }
         }
       }
     }
 
-    // Assign final steady positions
-    points.forEach((p, idx) => {
+    points.forEach((p) => {
       let seed = 0;
       for (let c = 0; c < p.id.length; c++) seed += p.id.charCodeAt(c);
       posMap[p.id] = {
@@ -143,7 +138,7 @@ export default function FloatingBlobsCanvas({
 
   // Ambient stars in background
   const backgroundStars = useMemo(() => {
-    return Array.from({ length: 85 }).map((_, i) => ({
+    return Array.from({ length: 80 }).map((_, i) => ({
       id: i,
       x: (i * 37) % 99,
       y: (i * 73) % 98,
@@ -158,36 +153,36 @@ export default function FloatingBlobsCanvas({
     switch (node.category) {
       case "skills":
         return {
-          gradient: "from-emerald-400/35 via-teal-600/25 to-cyan-950/65",
-          border: "rgba(52, 211, 153, 0.4)",
-          glow: "rgba(16, 185, 129, 0.5)",
+          gradient: "rgba(52, 211, 153, 0.35) 0%, rgba(13, 148, 136, 0.22) 50%, rgba(6, 78, 59, 0.65) 100%",
+          border: "rgba(52, 211, 153, 0.45)",
+          glow: "rgba(16, 185, 129, 0.55)",
           text: "#a7f3d0",
           core: "#34d399",
         };
       case "projects":
         return {
-          gradient: "from-cyan-400/35 via-blue-600/25 to-indigo-950/65",
-          border: "rgba(56, 189, 248, 0.4)",
-          glow: "rgba(6, 182, 212, 0.5)",
+          gradient: "rgba(56, 189, 248, 0.35) 0%, rgba(37, 99, 235, 0.22) 50%, rgba(30, 27, 75, 0.65) 100%",
+          border: "rgba(56, 189, 248, 0.45)",
+          glow: "rgba(6, 182, 212, 0.55)",
           text: "#bae6fd",
           core: "#38bdf8",
         };
       case "experience":
         return {
-          gradient: "from-amber-400/35 via-orange-600/25 to-rose-950/65",
-          border: "rgba(251, 191, 36, 0.4)",
-          glow: "rgba(245, 158, 11, 0.5)",
+          gradient: "rgba(251, 191, 36, 0.35) 0%, rgba(234, 88, 12, 0.22) 50%, rgba(76, 5, 25, 0.65) 100%",
+          border: "rgba(251, 191, 36, 0.45)",
+          glow: "rgba(245, 158, 11, 0.55)",
           text: "#fde68a",
           core: "#fbbf24",
         };
       case "domains":
       default:
         return {
-          gradient: "from-fuchsia-400/40 via-purple-600/30 to-indigo-950/70",
-          border: "rgba(232, 121, 249, 0.45)",
-          glow: "rgba(217, 70, 239, 0.55)",
-          text: "#f5d0fe",
-          core: "#e879f9",
+          gradient: `${selectedModel.colors.primary}55 0%, ${selectedModel.colors.secondary}35 50%, rgba(0, 0, 0, 0.75) 100%`,
+          border: `${selectedModel.colors.primary}80`,
+          glow: `${selectedModel.colors.primary}90`,
+          text: "#ffffff",
+          core: selectedModel.colors.primary,
         };
     }
   };
@@ -221,23 +216,41 @@ export default function FloatingBlobsCanvas({
       }
     });
     return lines;
-  }, [nodes, nodePositions]);
+  }, [nodes, nodePositions, selectedModel]);
 
   const activeHoveredNode = useMemo(() => {
     return nodes.find((n) => n.id === hoveredNodeId) || null;
   }, [nodes, hoveredNodeId]);
 
   return (
-    <div className="relative w-full h-full min-h-screen overflow-hidden bg-[#030611] select-none">
-      {/* Deep Space Background Glows */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0b132e] via-[#040817] to-[#02040a] pointer-events-none" />
-
-      {/* Atmospheric Space Nebulae */}
+    <div
+      className="relative w-full h-[100dvh] overflow-hidden select-none transition-colors duration-700"
+      style={{
+        backgroundColor: selectedModel.colors.bgColor,
+        backgroundImage: selectedModel.colors.meshGradient,
+      }}
+    >
+      {/* Dynamic Cosmic Gradient Tint matching the selected model */}
       <div
-        className="absolute top-1/4 left-1/4 w-[650px] h-[650px] rounded-full blur-[140px] opacity-20 pointer-events-none"
-        style={{ background: selectedModel.colors.primary }}
+        className="absolute inset-0 pointer-events-none transition-all duration-700"
+        style={{
+          background: `radial-gradient(ellipse at 40% 30%, ${selectedModel.colors.primary}33 0%, transparent 65%), radial-gradient(ellipse at 75% 70%, ${selectedModel.colors.secondary}25 0%, transparent 60%), radial-gradient(circle at 15% 80%, ${selectedModel.colors.accent}18 0%, transparent 55%), ${selectedModel.colors.bgColor}`,
+        }}
       />
-      <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] rounded-full blur-[160px] opacity-15 bg-cyan-500 pointer-events-none" />
+
+      {/* Atmospheric Space Nebulae shifting with active model colors */}
+      <div
+        className="absolute top-1/4 left-1/4 w-[850px] h-[850px] rounded-full blur-[180px] pointer-events-none transition-all duration-700"
+        style={{
+          background: `radial-gradient(circle, ${selectedModel.colors.primary}35 0%, transparent 70%)`,
+        }}
+      />
+      <div
+        className="absolute bottom-1/4 right-1/4 w-[800px] h-[800px] rounded-full blur-[190px] pointer-events-none transition-all duration-700"
+        style={{
+          background: `radial-gradient(circle, ${selectedModel.colors.secondary}28 0%, transparent 70%)`,
+        }}
+      />
 
       {/* Starfield Layer (Twinkling background stars) */}
       <div className="absolute inset-0 pointer-events-none">
@@ -275,7 +288,7 @@ export default function FloatingBlobsCanvas({
             stroke={line.color}
             strokeWidth="1"
             strokeDasharray="4 4"
-            opacity="0.16"
+            opacity="0.18"
           />
         ))}
       </svg>
@@ -289,7 +302,11 @@ export default function FloatingBlobsCanvas({
             placeholder="Search star cosmos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 rounded-full text-xs bg-black/60 backdrop-blur-xl border border-white/15 text-white placeholder:text-zinc-500 focus:outline-none focus:border-cyan-400 shadow-xl transition-all"
+            className="w-full pl-9 pr-3.5 py-2 rounded-full text-xs backdrop-blur-xl border text-white placeholder:text-zinc-500 focus:outline-none shadow-xl transition-all"
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0.65)",
+              borderColor: `${selectedModel.colors.primary}35`,
+            }}
           />
         </div>
       </div>
@@ -314,7 +331,7 @@ export default function FloatingBlobsCanvas({
               animate={{
                 boxShadow: [
                   `0 0 18px 2px ${palette.glow}, inset 0 0 8px rgba(255,255,255,0.15)`,
-                  `0 0 38px 8px ${palette.glow}, inset 0 0 16px rgba(255,255,255,0.3)`,
+                  `0 0 40px 9px ${palette.glow}, inset 0 0 16px rgba(255,255,255,0.32)`,
                   `0 0 18px 2px ${palette.glow}, inset 0 0 8px rgba(255,255,255,0.15)`,
                 ],
                 opacity: isHighlighted ? [0.88, 1, 0.88] : 0.2,
@@ -345,7 +362,7 @@ export default function FloatingBlobsCanvas({
             >
               {/* Star Core Dot */}
               <div
-                className="absolute w-2 h-2 rounded-full blur-[1px] opacity-80 top-2.5 right-3"
+                className="absolute w-2 h-2 rounded-full blur-[1px] opacity-85 top-2.5 right-3"
                 style={{ background: palette.core }}
               />
 
@@ -379,7 +396,11 @@ export default function FloatingBlobsCanvas({
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 max-w-xl w-[90%] bg-black/85 backdrop-blur-2xl px-5 py-3 rounded-2xl border border-white/20 shadow-2xl flex items-center justify-between gap-4 pointer-events-none"
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 max-w-xl w-[90%] backdrop-blur-2xl px-5 py-3 rounded-2xl border shadow-2xl flex items-center justify-between gap-4 pointer-events-none"
+            style={{
+              backgroundColor: "rgba(10, 5, 8, 0.85)",
+              borderColor: `${selectedModel.colors.primary}40`,
+            }}
           >
             <div className="flex items-center gap-3 truncate">
               <span
@@ -395,7 +416,10 @@ export default function FloatingBlobsCanvas({
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-bold text-cyan-400 shrink-0 uppercase tracking-wider">
+            <span
+              className="text-[10px] font-bold shrink-0 uppercase tracking-wider"
+              style={{ color: selectedModel.colors.primary }}
+            >
               Click to Enlarge &rarr;
             </span>
           </motion.div>

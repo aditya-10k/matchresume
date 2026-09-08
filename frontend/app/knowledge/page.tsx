@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import AppShell from "@/components/layout/AppShell";
 import { useModel } from "@/context/ModelContext";
 import {
   getKnowledgeUniverse,
@@ -46,59 +45,66 @@ export default function KnowledgeUniversePage() {
     }
   };
 
+  // Full screen edge-to-edge container (no duplicate AppShell or vertical strip)
   return (
-    <AppShell>
-      {/* Full screen starry container - Covers whole screen, no outer margins or title headers */}
-      <div className="relative w-full h-[100dvh] overflow-hidden bg-[#030611]">
-        {loading ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-8 space-y-4 bg-[#030611]">
-            <div
-              className="flex h-16 w-16 items-center justify-center rounded-3xl animate-bounce"
-              style={{
-                background: `${selectedModel.colors.primary}20`,
-                color: selectedModel.colors.primary,
-              }}
-            >
-              <BrainCircuit className="h-8 w-8 animate-pulse" />
-            </div>
-            <div className="text-center">
-              <h3 className="text-base font-bold text-white">
-                Mapping Candidate Vector Cosmos...
-              </h3>
-              <p className="text-xs text-zinc-400 mt-1 max-w-sm">
-                Mining ChromaDB knowledge chunks and positioning organic star blobs.
-              </p>
-            </div>
+    <div
+      className="relative w-full h-[100dvh] overflow-hidden transition-colors duration-700"
+      style={{ backgroundColor: selectedModel.colors.bgColor }}
+    >
+      {loading ? (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center p-8 space-y-4"
+          style={{ backgroundColor: selectedModel.colors.bgColor }}
+        >
+          <div
+            className="flex h-16 w-16 items-center justify-center rounded-3xl animate-bounce"
+            style={{
+              background: `${selectedModel.colors.primary}20`,
+              color: selectedModel.colors.primary,
+            }}
+          >
+            <BrainCircuit className="h-8 w-8 animate-pulse" />
           </div>
-        ) : error ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-[#030611]">
-            <AlertCircle className="h-10 w-10 text-rose-500 mb-2" />
-            <h3 className="text-base font-bold text-rose-400">
-              Failed to Load Knowledge Cosmos
+          <div className="text-center">
+            <h3 className="text-base font-bold text-white">
+              Mapping Candidate Vector Cosmos...
             </h3>
-            <p className="text-xs text-zinc-400 mt-1 max-w-sm">{error}</p>
-            <button
-              onClick={loadUniverse}
-              className="mt-4 px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-950"
-            >
-              Try Again
-            </button>
+            <p className="text-xs text-zinc-400 mt-1 max-w-sm">
+              Mining ChromaDB knowledge chunks and positioning organic star blobs.
+            </p>
           </div>
-        ) : data ? (
-          <FloatingBlobsCanvas
-            nodes={data.nodes}
-            onSelectNode={(node) => setSelectedNode(node)}
-            selectedNodeId={selectedNode?.id}
-          />
-        ) : null}
-
-        {/* Expanding Blob Inspection Modal */}
-        <BlobDetailModal
-          node={selectedNode}
-          onClose={() => setSelectedNode(null)}
-          onSelectRelated={handleSelectRelated}
+        </div>
+      ) : error ? (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center"
+          style={{ backgroundColor: selectedModel.colors.bgColor }}
+        >
+          <AlertCircle className="h-10 w-10 text-rose-500 mb-2" />
+          <h3 className="text-base font-bold text-rose-400">
+            Failed to Load Knowledge Cosmos
+          </h3>
+          <p className="text-xs text-zinc-400 mt-1 max-w-sm">{error}</p>
+          <button
+            onClick={loadUniverse}
+            className="mt-4 px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-950"
+          >
+            Try Again
+          </button>
+        </div>
+      ) : data ? (
+        <FloatingBlobsCanvas
+          nodes={data.nodes}
+          onSelectNode={(node) => setSelectedNode(node)}
+          selectedNodeId={selectedNode?.id}
         />
-      </div>
-    </AppShell>
+      ) : null}
+
+      {/* Expanding Blob Inspection Modal */}
+      <BlobDetailModal
+        node={selectedNode}
+        onClose={() => setSelectedNode(null)}
+        onSelectRelated={handleSelectRelated}
+      />
+    </div>
   );
 }
