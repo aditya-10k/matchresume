@@ -6,6 +6,8 @@ import { ModelProvider } from "@/context/ModelContext";
 import { AuthProvider } from "@/context/AuthContext";
 import AuthModal from "@/components/auth/AuthModal";
 import BYOKModal from "@/components/settings/BYOKModal";
+import { ServerStatusProvider } from "@/context/ServerStatusContext";
+import { ServerWakingBanner } from "@/components/ui/ServerWakingBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -170,13 +172,16 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <AuthProvider>
-          <ModelProvider>
-            <AppShell>{children}</AppShell>
-            <AuthModal />
-            <BYOKModal />
-          </ModelProvider>
-        </AuthProvider>
+        <ServerStatusProvider>
+          <AuthProvider>
+            <ModelProvider>
+              <AppShell>{children}</AppShell>
+              <AuthModal />
+              <BYOKModal />
+              <ServerWakingBanner />
+            </ModelProvider>
+          </AuthProvider>
+        </ServerStatusProvider>
       </body>
     </html>
   );
