@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import Application, GeneratedResume, Message, Resume, UserPreference
 from app.agents.chat_agent import chat_agent
-from app.api.deps import get_current_user, get_resolved_groq_key
+from app.api.deps import get_current_user, get_resolved_groq_key, get_resolved_groq_model
 from app.db.models import User
 
 logger = logging.getLogger("chat_api")
@@ -64,7 +64,8 @@ def send_chat_message(
     data: ChatMessageRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    groq_api_key: str = Depends(get_resolved_groq_key)
+    groq_api_key: str = Depends(get_resolved_groq_key),
+    groq_model: str = Depends(get_resolved_groq_model),
 ):
     """Send an instruction to refine the LaTeX resume conversationally."""
     application = db.query(Application).filter(
@@ -115,7 +116,8 @@ def send_chat_message(
             candidate_source_text=source_text,
             chat_history=history,
             user_preferences=pref_strings,
-            api_key=groq_api_key
+            api_key=groq_api_key,
+            model=groq_model,
         )
     except Exception as e:
         logger.error(f"Chat refinement error: {e}")

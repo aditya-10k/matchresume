@@ -81,3 +81,16 @@ def get_resolved_groq_key(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="NO_GROQ_KEY: No Groq API key provided. Please input your free Groq API key in Settings (get one at console.groq.com/keys)."
     )
+
+
+def get_resolved_groq_model(
+    x_groq_model: Optional[str] = Header(None, alias="x-groq-model"),
+) -> str:
+    """
+    Resolves the Groq model:
+    1. Client requested model via `x-groq-model` header.
+    2. Fallback to settings.GROQ_MODEL.
+    """
+    if x_groq_model and x_groq_model.strip():
+        return x_groq_model.strip()
+    return settings.GROQ_MODEL

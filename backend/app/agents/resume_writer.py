@@ -57,6 +57,7 @@ Return valid JSON with this exact schema:
         evidence_chunks: List[EvidenceChunk],
         api_key: Optional[str] = None,
         user_preferences: Optional[List[str]] = None,
+        model: Optional[str] = None,
     ) -> TailoredResumeOutput:
         """Tailors candidate experience into an ATS-friendly LaTeX document."""
         prefs_section = ""
@@ -81,11 +82,12 @@ Synthesize a tailored LaTeX resume that aligns with the target job requirements 
 Ensure all LaTeX formatting is pristine, escapes are complete, and return valid JSON.
 """
 
-        client = groq_client if not api_key else groq_client.__class__(api_key=api_key)
+        client = groq_client.__class__(api_key=api_key, model=model) if (api_key or model) else groq_client
         data = client.generate_json(
             system_prompt=self.SYSTEM_PROMPT,
             user_prompt=user_prompt,
-            temperature=0.1
+            temperature=0.1,
+            max_tokens=2048
         )
 
         latex_code = data.get("latex_code", "")

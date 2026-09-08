@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from app.agents.groq_client import groq_client
 
@@ -65,12 +65,13 @@ Return valid JSON:
         self,
         latex_code: str,
         source_resume_text: str = "",
-        api_key: Optional[str] = None
+        api_key: Optional[str] = None,
+        model: Optional[str] = None
     ) -> ValidationReport:
         """Validates LaTeX syntax and audits factual alignment."""
         syntax_warnings = self.check_latex_syntax_static(latex_code)
 
-        client = groq_client if not api_key else groq_client.__class__(api_key=api_key)
+        client = groq_client.__class__(api_key=api_key, model=model) if (api_key or model) else groq_client
         user_prompt = f"""
 SOURCE CANDIDATE RESUME:
 ```
@@ -90,7 +91,8 @@ Perform the factual audit and LaTeX syntax check. Identify any hallucinated clai
             data = client.generate_json(
                 system_prompt=self.SYSTEM_PROMPT,
                 user_prompt=user_prompt,
-                temperature=0.0
+                temperature=0.0,
+                max_tokens=600
             )
             latex_valid = bool(data.get("latex_syntax_valid", len(syntax_warnings) == 0))
             is_valid = bool(data.get("is_valid", True)) and (len(syntax_warnings) == 0)

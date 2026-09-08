@@ -1,5 +1,5 @@
 import re
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 from app.schemas.application import JDRequirements, RecommendedResume
 from app.schemas.rag import EvidenceChunk
 from app.db.models import Resume
@@ -34,7 +34,8 @@ Return JSON in this format:
         requirements: JDRequirements,
         available_resumes: List[Resume],
         all_evidence: List[EvidenceChunk],
-        api_key: Optional[str] = None
+        api_key: Optional[str] = None,
+        model: Optional[str] = None
     ) -> RecommendedResume:
         """Determines the strongest candidate resume for the given requirements."""
         if not available_resumes:
@@ -85,11 +86,12 @@ Select the candidate whose background best aligns with the role.
 Return a valid JSON object matching the schema.
 """
 
-        client = groq_client if not api_key else groq_client.__class__(api_key=api_key)
+        client = groq_client.__class__(api_key=api_key, model=model) if (api_key or model) else groq_client
         llm_eval = client.generate_json(
             system_prompt=self.SYSTEM_PROMPT,
             user_prompt=user_prompt,
-            temperature=0.0
+            temperature=0.0,
+            max_tokens=800
         )
 
         chosen_id = llm_eval.get("resume_id")

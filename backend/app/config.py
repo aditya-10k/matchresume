@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # LLM (Groq) - Fallback for dev mode only; production uses BYOK
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL: str = "qwen/qwen3.6-27b"
 
     # Security & Auth
     JWT_SECRET_KEY: str = "matchresume-super-secret-jwt-key-change-in-prod-2026"

@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
 from app.agents.groq_client import groq_client
 
@@ -39,7 +39,7 @@ Return valid JSON matching this schema:
 }
 """
 
-    def check(self, prompt: str, api_key: Optional[str] = None) -> GuardrailResult:
+    def check(self, prompt: str, api_key: Optional[str] = None, model: Optional[str] = None) -> GuardrailResult:
         """Evaluates whether the input is a valid job description."""
         text = prompt.strip()
         words = text.split()
@@ -52,13 +52,14 @@ Return valid JSON matching this schema:
                 reason=f"The input ('{text[:30]}...') is too brief to be a valid job description. Please provide an actual job description with responsibilities or requirements."
             )
 
-        client = groq_client if not api_key else groq_client.__class__(api_key=api_key)
+        client = groq_client.__class__(api_key=api_key, model=model) if (api_key or model) else groq_client
         user_prompt = f"Input Text to Evaluate:\n```\n{text}\n```"
         try:
             data = client.generate_json(
                 system_prompt=self.SYSTEM_PROMPT,
                 user_prompt=user_prompt,
-                temperature=0.0
+                temperature=0.0,
+                max_tokens=400
             )
             return GuardrailResult(
                 is_valid=bool(data.get("is_valid", False)),

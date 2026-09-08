@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.schemas.application import JDRequirements
 from app.agents.groq_client import groq_client
 
@@ -28,7 +28,7 @@ STRICT ANTI-HALLUCINATION RULES:
 - NEVER invent or assume skills (such as Python, SQL, or Docker) if they are not written in the job description.
 """
 
-    def analyze(self, jd_text: str, api_key: Optional[str] = None) -> JDRequirements:
+    def analyze(self, jd_text: str, api_key: Optional[str] = None, model: Optional[str] = None) -> JDRequirements:
         """Extracts structured requirements from JD text using pure LLM inference."""
         words = jd_text.strip().split()
         if len(words) < 8:
@@ -37,12 +37,13 @@ STRICT ANTI-HALLUCINATION RULES:
                 "Please provide a realistic job description with requirements or responsibilities (minimum 10 words)."
             )
 
-        client = groq_client if not api_key else groq_client.__class__(api_key=api_key)
+        client = groq_client.__class__(api_key=api_key, model=model) if (api_key or model) else groq_client
         user_prompt = f"Job Description:\n```\n{jd_text}\n```"
         data = client.generate_json(
             system_prompt=self.SYSTEM_PROMPT,
             user_prompt=user_prompt,
-            temperature=0.0
+            temperature=0.0,
+            max_tokens=800
         )
         return JDRequirements(
             role=data.get("role") or "Target Position",

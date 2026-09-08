@@ -44,6 +44,7 @@ CRITICAL RULES:
         chat_history: Optional[List[Dict[str, str]]] = None,
         user_preferences: Optional[List[str]] = None,
         api_key: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> ChatRefinementResponse:
         """Refines existing LaTeX resume according to user's conversational prompt."""
         prefs_section = ""
@@ -78,11 +79,12 @@ Apply the user's edit instruction to the LaTeX resume. Preserve full compilabili
 Return valid JSON only.
 """
 
-        client = groq_client if not api_key else groq_client.__class__(api_key=api_key)
+        client = groq_client.__class__(api_key=api_key, model=model) if (api_key or model) else groq_client
         data = client.generate_json(
             system_prompt=self.SYSTEM_PROMPT,
             user_prompt=user_prompt,
-            temperature=0.1
+            temperature=0.1,
+            max_tokens=2048
         )
 
         latex_code = data.get("updated_latex", current_latex)

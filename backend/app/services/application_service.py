@@ -48,7 +48,8 @@ class ApplicationService:
         db: Session,
         application_id: str,
         groq_api_key: Optional[str] = None,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        groq_model: Optional[str] = None
     ) -> AnalysisResponse:
         application = self.get_application(db, application_id, user_id=user_id)
         if not application:
@@ -72,7 +73,8 @@ class ApplicationService:
             available_resumes=available_resumes,
             agent_enabled=application.agent_enabled,
             groq_api_key=groq_api_key,
-            user_preferences=pref_strings
+            user_preferences=pref_strings,
+            groq_model=groq_model
         )
 
         # Update application state
@@ -96,7 +98,8 @@ class ApplicationService:
         db: Session,
         application_id: str,
         groq_api_key: Optional[str] = None,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        groq_model: Optional[str] = None
     ) -> Dict[str, Any]:
         """Runs the ResumeWriter and Validator agent pipeline to tailor resume LaTeX."""
         application = self.get_application(db, application_id, user_id=user_id)
@@ -104,7 +107,7 @@ class ApplicationService:
             raise ValueError(f"Application {application_id} not found")
 
         if not application.selected_resume_id:
-            self.analyze_application(db, application_id, groq_api_key=groq_api_key, user_id=user_id)
+            self.analyze_application(db, application_id, groq_api_key=groq_api_key, user_id=user_id, groq_model=groq_model)
             application = self.get_application(db, application_id, user_id=user_id)
 
         selected_resume = db.query(Resume).filter(Resume.id == application.selected_resume_id).first()
@@ -129,7 +132,8 @@ class ApplicationService:
             resume=selected_resume,
             evidence_chunks=evidence_chunks,
             groq_api_key=groq_api_key,
-            user_preferences=pref_strings
+            user_preferences=pref_strings,
+            groq_model=groq_model
         )
 
         gen_resume = GeneratedResume(

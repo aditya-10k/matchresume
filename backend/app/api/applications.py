@@ -11,7 +11,7 @@ from app.schemas.application import (
 from app.services.application_service import application_service
 from app.services.pdf_service import extract_text_from_pdf_bytes
 
-from app.api.deps import get_current_user, get_resolved_groq_key
+from app.api.deps import get_current_user, get_resolved_groq_key, get_resolved_groq_model
 from app.db.models import User
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
@@ -111,7 +111,8 @@ def analyze_application(
     application_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    groq_api_key: str = Depends(get_resolved_groq_key)
+    groq_api_key: str = Depends(get_resolved_groq_key),
+    groq_model: str = Depends(get_resolved_groq_model),
 ):
     """Run JD Analyzer and Resume Selector agents to match and score resumes."""
     try:
@@ -119,7 +120,8 @@ def analyze_application(
             db,
             application_id,
             groq_api_key=groq_api_key,
-            user_id=current_user.id
+            user_id=current_user.id,
+            groq_model=groq_model,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -134,7 +136,8 @@ def tailor_application(
     application_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    groq_api_key: str = Depends(get_resolved_groq_key)
+    groq_api_key: str = Depends(get_resolved_groq_key),
+    groq_model: str = Depends(get_resolved_groq_model),
 ):
     """Runs the ResumeWriterAgent and ValidatorAgent to generate and audit a tailored LaTeX resume."""
     try:
@@ -142,7 +145,8 @@ def tailor_application(
             db,
             application_id,
             groq_api_key=groq_api_key,
-            user_id=current_user.id
+            user_id=current_user.id,
+            groq_model=groq_model,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -171,7 +175,8 @@ def validate_custom_latex(
     payload: dict,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    groq_api_key: str = Depends(get_resolved_groq_key)
+    groq_api_key: str = Depends(get_resolved_groq_key),
+    groq_model: str = Depends(get_resolved_groq_model),
 ):
     """Audits custom user-edited LaTeX code for syntax errors and factual hallucination."""
     from app.agents.validator import validator_agent
@@ -195,7 +200,8 @@ def validate_custom_latex(
         report = validator_agent.validate(
             latex_code=latex_code,
             source_resume_text=source_text,
-            api_key=groq_api_key
+            api_key=groq_api_key,
+            model=groq_model,
         )
         return report.model_dump()
     except RuntimeError as e:

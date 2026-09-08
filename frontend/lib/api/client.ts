@@ -28,6 +28,11 @@ export function setStoredGroqKey(key: string | null) {
   }
 }
 
+export function getStoredModel(): string {
+  if (typeof window === "undefined") return "qwen/qwen3.6-27b";
+  return localStorage.getItem("matchresume_selected_model") || "qwen/qwen3.6-27b";
+}
+
 export function getApiHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
   const headers: Record<string, string> = {
     ...additionalHeaders,
@@ -41,6 +46,11 @@ export function getApiHeaders(additionalHeaders: Record<string, string> = {}): R
   const groqKey = getStoredGroqKey();
   if (groqKey) {
     headers["x-groq-api-key"] = groqKey;
+  }
+
+  const model = getStoredModel();
+  if (model) {
+    headers["x-groq-model"] = model;
   }
 
   return headers;
