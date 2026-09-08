@@ -34,6 +34,10 @@ interface AuthContextType {
   setGroqApiKey: (key: string, saveToAccount?: boolean) => Promise<void>;
   clearGroqApiKey: () => Promise<void>;
   checkGroqKeyValid: (key: string) => Promise<{ valid: boolean; message: string }>;
+  /** True if a Groq key is available (localStorage or saved account key) */
+  hasGroqKey: boolean;
+  /** Call before any LLM action. Returns true if key exists, otherwise opens BYOK modal and returns false. */
+  requireGroqKey: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -132,6 +136,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return await validateGroqKey(key);
   };
 
+  /** True when a key is available from localStorage or the user's saved account key */
+  const hasGroqKey = !!(groqKey || user?.has_groq_key);
+
+  /** Guard for LLM actions — opens BYOK modal and returns false if no key */
+  const requireGroqKey = (): boolean => {
+    if (hasGroqKey) return true;
+    setIsByokModalOpen(true);
+    return false;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -151,6 +165,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setGroqApiKey,
         clearGroqApiKey,
         checkGroqKeyValid,
+        hasGroqKey,
+        requireGroqKey,
       }}
     >
       {children}

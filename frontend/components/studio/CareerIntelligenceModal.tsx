@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useModel } from "@/context/ModelContext";
+import { useAuth } from "@/context/AuthContext";
 import { CareerQueryAnswer, queryCareerProfile } from "@/lib/api/career";
 
 interface CareerIntelligenceModalProps {
@@ -33,6 +34,7 @@ export default function CareerIntelligenceModal({
   onSwitchToTailor,
 }: CareerIntelligenceModalProps) {
   const { selectedModel } = useModel();
+  const { requireGroqKey } = useAuth();
   const [data, setData] = useState<CareerQueryAnswer | null>(initialData);
   const [showEvidence, setShowEvidence] = useState(false);
   const [followupInput, setFollowupInput] = useState("");
@@ -50,6 +52,7 @@ export default function CareerIntelligenceModal({
   if (!isOpen || !data) return null;
 
   const handleAskFollowup = async (queryText?: string) => {
+    if (!requireGroqKey()) return;
     const q = (queryText || followupInput).trim();
     if (!q || loading) return;
 

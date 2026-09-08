@@ -12,6 +12,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { useModel } from "@/context/ModelContext";
+import { useAuth } from "@/context/AuthContext";
 import { createApplication, createApplicationFromPdf, analyzeApplication } from "@/lib/api/applications";
 import AgentProgressTimeline from "@/components/agent/AgentProgressTimeline";
 
@@ -19,6 +20,7 @@ function NewApplicationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { selectedModel } = useModel();
+  const { requireGroqKey } = useAuth();
 
   const [jdText, setJdText] = useState("");
   const [company, setCompany] = useState("");
@@ -39,6 +41,7 @@ function NewApplicationContent() {
   }, [searchParams]);
 
   const handleStartAnalysis = async () => {
+    if (!requireGroqKey()) return;
     if (!uploadedPdf && (!jdText || !jdText.trim())) {
       setErrorMessage("Please paste a job description or drop a JD PDF.");
       return;

@@ -9,6 +9,7 @@ import {
   Loader2
 } from "lucide-react";
 import { useModel } from "@/context/ModelContext";
+import { useAuth } from "@/context/AuthContext";
 import IntelligenceOrb from "@/components/ui/IntelligenceOrb";
 import ModelSelector from "@/components/ui/ModelSelector";
 import { createApplication, analyzeApplication } from "@/lib/api/applications";
@@ -18,6 +19,7 @@ import CareerIntelligenceModal from "@/components/studio/CareerIntelligenceModal
 export default function DashboardPage() {
   const router = useRouter();
   const { selectedModel } = useModel();
+  const { requireGroqKey } = useAuth();
   const [promptInput, setPromptInput] = useState("");
   const [isOrbActive, setIsOrbActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -27,6 +29,7 @@ export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleStartMatch = async (initialText?: string) => {
+    if (!requireGroqKey()) return;
     const textToPass = (initialText || promptInput).trim();
     if (!textToPass) {
       setErrorMessage("Please ask a profile question or paste a job description.");

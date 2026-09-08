@@ -17,6 +17,7 @@ import {
   FileCode,
 } from "lucide-react";
 import { useModel } from "@/context/ModelContext";
+import { useAuth } from "@/context/AuthContext";
 import {
   getApplication,
   tailorApplication,
@@ -39,6 +40,7 @@ export default function LaTeXStudioPage() {
   const router = useRouter();
   const applicationId = params?.id as string;
   const { selectedModel } = useModel();
+  const { requireGroqKey } = useAuth();
 
   const [application, setApplication] = useState<Application | null>(null);
   const [latexCode, setLatexCode] = useState<string>("");
@@ -105,6 +107,7 @@ export default function LaTeXStudioPage() {
   };
 
   const handleGenerateTailored = async (presetId?: string, customTmpl?: string) => {
+    if (!requireGroqKey()) return;
     try {
       setIsTailoring(true);
       setError("");

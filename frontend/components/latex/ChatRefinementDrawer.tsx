@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Message } from "@/lib/types";
 import { getChatMessages, sendChatMessage } from "@/lib/api/chat";
+import { useAuth } from "@/context/AuthContext";
 
 interface ChatRefinementDrawerProps {
   applicationId: string;
@@ -44,6 +45,8 @@ export default function ChatRefinementDrawer({
   const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const { requireGroqKey } = useAuth();
+
   useEffect(() => {
     if (isOpen && applicationId) {
       loadMessages();
@@ -66,6 +69,7 @@ export default function ChatRefinementDrawer({
   };
 
   const handleSend = async (messageText?: string) => {
+    if (!requireGroqKey()) return;
     const textToSend = messageText || input;
     if (!textToSend.trim() || loading) return;
 
