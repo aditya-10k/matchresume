@@ -1,10 +1,11 @@
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 
-from app.db.models import Application, Resume
-from app.schemas.application import ApplicationCreate, AnalysisResponse
+from app.db.models import Application, Resume, GeneratedResume
+from app.schemas.application import ApplicationCreate, AnalysisResponse, JDRequirements
 from app.agents.orchestrator import orchestrator
+from app.rag import retrieve_context
 
 
 class ApplicationService:
@@ -68,5 +69,74 @@ class ApplicationService:
 
         return analysis
 
+    def tailor_application(self, db: Session, application_id: str) -> Dict[str, Any]:
+        """Runs the ResumeWriter and Validator agent pipeline to tailor resume LaTeX."""
+        application = self.get_application(db, application_id)
+        if not application:
+            raise ValueError(f"Application {application_id} not found")
+
+        if not application.selected_resume_id:
+            self.analyze_application(db, application_id)
+            application = self.get_application(db, application_id)
+
+        selected_resume = db.query(Resume).filter(Resume.id == application.selected_resume_id).first()
+        if not selected_resume:
+            raise ValueError("No candidate resume is available to tailor.")
+
+        requirements = JDRequirements(**(application.jd_analysis or {}))
+
+        evidence_chunks = []
+        for term in requirements.required_skills[:4]:
+            chunks = retrieve_context(query=term, top_k=2)
+            evidence_chunks.extend(chunks)
+
+        tailored_data = orchestrator.tailor_resume(
+            requirements=requirements,
+            resume=selected_resume,
+            evidence_chunks=evidence_chunks
+        )
+
+        gen_resume = GeneratedResume(
+            application_id=application.id,
+            latex=tailored_data["latex_code"],
+            notes=tailored_data["tailored_summary"],
+        )
+        db.add(gen_resume)
+        db.commit()
+        db.refresh(gen_resume)
+
+        return {
+            "application_id": application.id,
+            "resume_id": selected_resume.id,
+            "resume_name": selected_resume.name,
+            "role_title": application.role_title,
+            "latex_code": tailored_data["latex_code"],
+            "tailored_summary": tailored_data["tailored_summary"],
+            "highlighted_skills": tailored_data["highlighted_skills"],
+            "validation": tailored_data["validation"]
+        }
+
+    def get_latest_tailored_resume(self, db: Session, application_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieves the most recent tailored LaTeX for an application."""
+        application = self.get_application(db, application_id)
+        if not application:
+            return None
+        latest = (
+            db.query(GeneratedResume)
+            .filter(GeneratedResume.application_id == application_id)
+            .order_by(GeneratedResume.created_at.desc())
+            .first()
+        )
+        if not latest:
+            return None
+        return {
+            "application_id": application.id,
+            "latex_code": latest.latex,
+            "tailored_summary": latest.notes,
+            "version": latest.version,
+            "created_at": latest.created_at
+        }
+
 
 application_service = ApplicationService()
+

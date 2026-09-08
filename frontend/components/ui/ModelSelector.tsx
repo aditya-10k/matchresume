@@ -7,9 +7,10 @@ import { useModel } from "@/context/ModelContext";
 
 interface ModelSelectorProps {
   direction?: "up" | "down";
+  inSidebar?: boolean;
 }
 
-export default function ModelSelector({ direction = "down" }: ModelSelectorProps) {
+export default function ModelSelector({ direction = "down", inSidebar = false }: ModelSelectorProps) {
   const { selectedModel, selectedModelId, setSelectedModelId, availableModels } = useModel();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -25,34 +26,40 @@ export default function ModelSelector({ direction = "down" }: ModelSelectorProps
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const positionClasses =
-    direction === "up"
-      ? "bottom-full mb-2.5 left-0 sm:left-auto sm:right-0 origin-bottom"
-      : "top-full mt-2.5 right-0 origin-top";
+  const positionClasses = inSidebar
+    ? "bottom-full mb-2 left-0 origin-bottom-left w-[230px]"
+    : direction === "up"
+    ? "bottom-full mb-2.5 left-0 sm:left-auto sm:right-0 origin-bottom w-72 sm:w-80"
+    : "top-full mt-2.5 right-0 origin-top w-72 sm:w-80";
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className={`relative ${inSidebar ? "w-full" : ""}`} ref={dropdownRef}>
       {/* Trigger Pill Button */}
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center gap-2 rounded-full border border-zinc-200 dark:border-white/15 bg-white/80 dark:bg-black/75 px-3.5 py-1.5 text-xs font-medium text-zinc-900 dark:text-white shadow-md dark:shadow-lg backdrop-blur-xl hover:border-zinc-300 dark:hover:border-white/30 active:scale-95 transition-all"
+        className={
+          inSidebar
+            ? "flex w-full items-center justify-between rounded-xl border border-zinc-200/80 dark:border-white/10 bg-zinc-100/70 dark:bg-zinc-900/60 px-3 py-2 text-xs font-medium text-zinc-900 dark:text-white shadow-sm hover:bg-zinc-200/50 dark:hover:bg-zinc-800 transition-all"
+            : "flex items-center gap-2 rounded-full border border-zinc-200 dark:border-white/15 bg-white/80 dark:bg-black/75 px-3.5 py-1.5 text-xs font-medium text-zinc-900 dark:text-white shadow-md dark:shadow-lg backdrop-blur-xl hover:border-zinc-300 dark:hover:border-white/30 active:scale-95 transition-all"
+        }
         style={{
-          boxShadow: `0 0 15px ${selectedModel.colors.primary}25`,
+          boxShadow: inSidebar ? undefined : `0 0 15px ${selectedModel.colors.primary}25`,
         }}
       >
-        {/* Glowing theme color dot */}
-        <span
-          className="h-2 w-2 rounded-full animate-pulse"
-          style={{
-            backgroundColor: selectedModel.colors.primary,
-            boxShadow: `0 0 8px ${selectedModel.colors.primary}`,
-          }}
-        />
-
-        <span className="font-semibold tracking-tight">{selectedModel.shortName}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Glowing theme color dot */}
+          <span
+            className="h-2 w-2 shrink-0 rounded-full animate-pulse"
+            style={{
+              backgroundColor: selectedModel.colors.primary,
+              boxShadow: `0 0 8px ${selectedModel.colors.primary}`,
+            }}
+          />
+          <span className="font-semibold tracking-tight truncate">{selectedModel.shortName}</span>
+        </div>
         <ChevronDown
-          className={`h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400 transition-transform duration-200 ${
+          className={`h-3.5 w-3.5 shrink-0 text-zinc-500 dark:text-zinc-400 transition-transform duration-200 ${
             isOpen ? "rotate-180 text-zinc-900 dark:text-white" : ""
           }`}
         />
@@ -66,7 +73,7 @@ export default function ModelSelector({ direction = "down" }: ModelSelectorProps
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: direction === "up" ? 8 : -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className={`absolute z-[100] w-72 sm:w-80 overflow-hidden rounded-3xl border border-zinc-200 dark:border-white/20 bg-white/95 dark:bg-zinc-950/95 p-2 shadow-2xl backdrop-blur-3xl ${positionClasses}`}
+            className={`absolute z-[100] overflow-hidden rounded-2xl border border-zinc-200 dark:border-white/20 bg-white dark:bg-zinc-950 p-2 shadow-2xl backdrop-blur-3xl ${positionClasses}`}
             style={{
               boxShadow: `0 25px 60px rgba(0,0,0,0.15), 0 0 35px ${selectedModel.colors.primary}25`,
             }}

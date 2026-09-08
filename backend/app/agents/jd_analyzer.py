@@ -22,60 +22,34 @@ Return a valid JSON object matching this exact schema:
   "keywords": ["Essential", "domain", "keywords", "for", "ATS", "matching"]
 }
 Keep skill items concise (1-3 words each, e.g. "Python", "RAG", "FastAPI", "PostgreSQL").
-Do not hallucinate skills not mentioned or implied by the JD.
+STRICT ANTI-HALLUCINATION RULES:
+- Only extract skills, tools, frameworks, and qualifications explicitly mentioned in the text.
+- If the text is NOT a legitimate job description or does not contain technical requirements (e.g. casual greetings like "hi", nonsensical input, or unrelated text), return empty lists for required_skills, preferred_skills, responsibilities, and keywords, and set role to "Unspecified Position".
+- NEVER invent or assume skills (such as Python, SQL, or Docker) if they are not written in the job description.
 """
 
     def analyze(self, jd_text: str) -> JDRequirements:
-        """Extracts structured requirements from JD text."""
-        fallback = self._heuristic_fallback(jd_text)
-        
+        """Extracts structured requirements from JD text using pure LLM inference."""
+        words = jd_text.strip().split()
+        if len(words) < 8:
+            raise ValueError(
+                f"The provided text ('{jd_text[:30]}...') is too brief to be a valid job description. "
+                "Please provide a realistic job description with requirements or responsibilities (minimum 10 words)."
+            )
+
         user_prompt = f"Job Description:\n```\n{jd_text}\n```"
-        try:
-            data = groq_client.generate_json(
-                system_prompt=self.SYSTEM_PROMPT,
-                user_prompt=user_prompt,
-                fallback_data=fallback,
-                temperature=0.1
-            )
-            return JDRequirements(
-                role=data.get("role") or fallback["role"],
-                required_skills=data.get("required_skills") or fallback["required_skills"],
-                preferred_skills=data.get("preferred_skills") or fallback["preferred_skills"],
-                responsibilities=data.get("responsibilities") or fallback["responsibilities"],
-                keywords=data.get("keywords") or fallback["keywords"],
-            )
-        except Exception:
-            return JDRequirements(**fallback)
-
-    def _heuristic_fallback(self, text: str) -> Dict[str, Any]:
-        """Deterministic keyword parser used when Groq is unconfigured or unavailable."""
-        common_tech = [
-            "Python", "TypeScript", "JavaScript", "React", "Next.js", "FastAPI",
-            "SQL", "PostgreSQL", "ChromaDB", "RAG", "LLMs", "Docker", "Kubernetes",
-            "AWS", "GCP", "Azure", "PyTorch", "TensorFlow", "Git", "REST APIs",
-            "Tailwind", "GraphQL", "Redis", "Kafka", "Linux", "CI/CD"
-        ]
-        
-        found_skills = []
-        for tech in common_tech:
-            pattern = rf"\b{re.escape(tech)}\b"
-            if re.search(pattern, text, re.IGNORECASE):
-                found_skills.append(tech)
-
-        first_line = text.strip().split("\n")[0][:80]
-        role_guess = first_line if "Engineer" in first_line or "Developer" in first_line else "Software Engineer"
-
-        return {
-            "role": role_guess,
-            "required_skills": found_skills[:6] if found_skills else ["Python", "FastAPI", "SQL"],
-            "preferred_skills": found_skills[6:10] if len(found_skills) > 6 else ["Docker", "Vector Databases"],
-            "responsibilities": [
-                "Architect and develop scalable features",
-                "Collaborate with cross-functional teams",
-                "Ensure clean code quality and testing"
-            ],
-            "keywords": found_skills[:8] or ["AI", "Backend", "Full Stack"]
-        }
+        data = groq_client.generate_json(
+            system_prompt=self.SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+            temperature=0.0
+        )
+        return JDRequirements(
+            role=data.get("role") or "Target Position",
+            required_skills=data.get("required_skills") or [],
+            preferred_skills=data.get("preferred_skills") or [],
+            responsibilities=data.get("responsibilities") or [],
+            keywords=data.get("keywords") or [],
+        )
 
 
 jd_analyzer = JDAnalyzerAgent()

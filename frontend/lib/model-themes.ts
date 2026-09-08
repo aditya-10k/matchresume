@@ -140,4 +140,4 @@ export const AI_MODELS: Record<string, AIModelConfig> = {
   },
 };
 
-export const DEFAULT_MODEL_ID = "openai/gpt-oss-120b";
+export const DEFAULT_MODEL_ID = "qwen/qwen3.6-27b";

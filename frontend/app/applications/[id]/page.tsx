@@ -94,10 +94,9 @@ export default function ApplicationDetailPage({
     <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Dynamic Background Glow */}
       <div
-        className="pointer-events-none absolute top-10 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full blur-[140px] -z-10 transition-colors duration-700"
+        className="pointer-events-none absolute top-10 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full -z-10 transition-colors duration-700"
         style={{
-          backgroundColor: selectedModel.colors.primary,
-          opacity: 0.16,
+          background: `radial-gradient(circle, ${selectedModel.colors.primary}20 0%, transparent 70%)`,
         }}
       />
 
@@ -116,7 +115,7 @@ export default function ApplicationDetailPage({
                 border: `1px solid ${selectedModel.colors.primary}30`,
               }}
             >
-              {application.agent_enabled ? "Agentic Workflow" : "Deterministic Baseline"}
+              {selectedModel.name}
             </span>
             {application.company && (
               <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">@ {application.company}</span>
@@ -167,7 +166,7 @@ export default function ApplicationDetailPage({
         >
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-white/10 pb-2">
-              Aira Recommendation Rationale
+              matchresume Recommendation Rationale
             </h3>
             <p className="mt-3 text-xs sm:text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed">
               {recommendation.reason}

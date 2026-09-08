@@ -13,6 +13,7 @@ interface ModelContextType {
   colorMode: ColorMode;
   setColorMode: (mode: ColorMode) => void;
   toggleColorMode: () => void;
+  isMounted: boolean;
 }
 
 const ModelContext = createContext<ModelContextType | undefined>(undefined);
@@ -20,8 +21,10 @@ const ModelContext = createContext<ModelContextType | undefined>(undefined);
 export function ModelProvider({ children }: { children: React.ReactNode }) {
   const [selectedModelId, setSelectedModelIdState] = useState<string>(DEFAULT_MODEL_ID);
   const [colorMode, setColorModeState] = useState<ColorMode>("dark");
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const savedModel = localStorage.getItem("matchresume_selected_model");
     if (savedModel && AI_MODELS[savedModel]) {
       setSelectedModelIdState(savedModel);
@@ -100,6 +103,7 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
         colorMode,
         setColorMode,
         toggleColorMode,
+        isMounted,
       }}
     >
       {children}

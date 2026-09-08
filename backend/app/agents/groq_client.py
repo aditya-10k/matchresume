@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional
 from groq import Groq
 from app.config import settings
 
@@ -8,7 +8,7 @@ logger = logging.getLogger("groq_client")
 
 
 class GroqClient:
-    """Wrapper around Groq API supporting structured output and fallbacks."""
+    """Wrapper around Groq API supporting structured output."""
 
     def __init__(self):
         self.api_key = settings.GROQ_API_KEY
@@ -28,31 +28,26 @@ class GroqClient:
         self,
         system_prompt: str,
         user_prompt: str,
-        fallback_data: Optional[Dict[str, Any]] = None,
-        temperature: float = 0.1,
+        temperature: float = 0.0,
     ) -> Dict[str, Any]:
-        """Calls Groq expecting a JSON response object."""
+        """Calls Groq expecting a JSON response object. Fails explicitly if unconfigured or on error."""
         if not self._client:
-            logger.info("Groq API key not configured. Using deterministic extraction fallback.")
-            return fallback_data or {}
-
-        try:
-            response = self._client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": f"{system_prompt}\n\nYou must return valid JSON only."},
-                    {"role": "user", "content": user_prompt},
-                ],
-                response_format={"type": "json_object"},
-                temperature=temperature,
+            raise RuntimeError(
+                "GROQ_API_KEY is not configured in backend/.env. "
+                "Please configure a valid Groq API key to run the AI agents."
             )
-            content = response.choices[0].message.content
-            return json.loads(content)
-        except Exception as e:
-            logger.error(f"Groq API call error: {e}")
-            if fallback_data is not None:
-                return fallback_data
-            raise
+
+        response = self._client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": f"{system_prompt}\n\nYou must return valid JSON only."},
+                {"role": "user", "content": user_prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=temperature,
+        )
+        content = response.choices[0].message.content
+        return json.loads(content)
 
 
 groq_client = GroqClient()

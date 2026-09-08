@@ -18,6 +18,7 @@ class ResumeResponse(BaseModel):
     status: str
     created_at: datetime
     text_preview: Optional[str] = None
+    raw_text: Optional[str] = None
 
     class Config:
         from_attributes = True

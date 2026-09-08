@@ -73,3 +73,69 @@ export async function analyzeApplication(id: string): Promise<ApplicationAnalysi
   }
   return res.json();
 }
+
+export async function tailorApplication(id: string): Promise<{
+  application_id: string;
+  resume_id: string;
+  resume_name: string;
+  role_title?: string;
+  latex_code: string;
+  tailored_summary: string;
+  highlighted_skills: string[];
+  validation: {
+    is_valid: boolean;
+    latex_syntax_valid: boolean;
+    factual_score: number;
+    hallucinations_detected: string[];
+    syntax_issues: string[];
+    feedback: string;
+  };
+}> {
+  const res = await fetch(`${API_BASE}/applications/${id}/tailor`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to tailor resume");
+  }
+  return res.json();
+}
+
+export async function getTailoredResume(id: string): Promise<{
+  application_id: string;
+  latex_code: string;
+  tailored_summary?: string;
+  version: number;
+  created_at: string;
+} | null> {
+  const res = await fetch(`${API_BASE}/applications/${id}/tailor`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    return null;
+  }
+  return res.json();
+}
+
+export async function validateCustomLatex(
+  id: string,
+  latex_code: string
+): Promise<{
+  is_valid: boolean;
+  latex_syntax_valid: boolean;
+  factual_score: number;
+  hallucinations_detected: string[];
+  syntax_issues: string[];
+  feedback: string;
+}> {
+  const res = await fetch(`${API_BASE}/applications/${id}/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ latex_code }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to validate LaTeX");
+  }
+  return res.json();
+}

@@ -7,8 +7,6 @@ import {
   Briefcase,
   Sparkles,
   FileText,
-  Bot,
-  Zap,
   UploadCloud,
   CheckCircle2,
   AlertCircle
@@ -25,7 +23,7 @@ function NewApplicationContent() {
   const [jdText, setJdText] = useState("");
   const [company, setCompany] = useState("");
   const [roleTitle, setRoleTitle] = useState("");
-  const [agentEnabled, setAgentEnabled] = useState(true);
+  const agentEnabled = true;
   const [uploadedPdf, setUploadedPdf] = useState<File | null>(null);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -43,6 +41,11 @@ function NewApplicationContent() {
   const handleStartAnalysis = async () => {
     if (!uploadedPdf && (!jdText || !jdText.trim())) {
       setErrorMessage("Please paste a job description or drop a JD PDF.");
+      return;
+    }
+
+    if (!uploadedPdf && jdText.trim().split(/\s+/).filter(Boolean).length < 8) {
+      setErrorMessage("Input is too brief. Please paste a realistic job description with qualifications or responsibilities (minimum 8-10 words).");
       return;
     }
 
@@ -98,10 +101,9 @@ function NewApplicationContent() {
     <div className="relative mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Dynamic Background Aura */}
       <div
-        className="pointer-events-none absolute top-10 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full blur-[120px] -z-10 transition-colors duration-700"
+        className="pointer-events-none absolute top-10 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full -z-10 transition-colors duration-700"
         style={{
-          backgroundColor: selectedModel.colors.primary,
-          opacity: 0.15,
+          background: `radial-gradient(circle, ${selectedModel.colors.primary}20 0%, transparent 70%)`,
         }}
       />
 
@@ -110,7 +112,7 @@ function NewApplicationContent() {
           Analyze Position
         </h1>
         <p className="mt-2 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-md mx-auto">
-          Input the target job description. Aira will extract requirements, search your vector career vault, and select the optimal resume.
+          Input the target job description. AI agents will extract requirements, search your vector career vault, and select the optimal resume.
         </p>
       </div>
 
@@ -230,62 +232,6 @@ function NewApplicationContent() {
                   />
                 </label>
               </div>
-            </div>
-
-            {/* Agent Mode Toggle */}
-            <div
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border bg-white/80 dark:bg-black/40 p-5 shadow-lg dark:shadow-xl backdrop-blur-xl transition-all"
-              style={{ borderColor: `${selectedModel.colors.primary}20` }}
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
-                  style={{
-                    background: `${selectedModel.colors.primary}15`,
-                    border: `1px solid ${selectedModel.colors.primary}30`,
-                    color: selectedModel.colors.primary,
-                  }}
-                >
-                  {agentEnabled ? <Bot className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-semibold text-zinc-900 dark:text-white">
-                      {agentEnabled ? "Agent Mode (Autonomous Orchestration)" : "Baseline Mode (Deterministic RAG)"}
-                    </h3>
-                    <span
-                      className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase"
-                      style={{
-                        background: `${selectedModel.colors.primary}20`,
-                        color: selectedModel.colors.primary,
-                      }}
-                    >
-                      {agentEnabled ? "Agent ON" : "Agent OFF"}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-zinc-600 dark:text-zinc-400 max-w-lg">
-                    {agentEnabled
-                      ? "Orchestrates multi-agent reasoning: JD Analyzer parses requirements, RAG retrieves targeted evidence, Selector scores fit and missing gaps."
-                      : "Direct keyword and embedding extraction without iterative multi-agent reflection."}
-                  </p>
-                </div>
-              </div>
-
-              {/* Toggle Switch */}
-              <button
-                type="button"
-                onClick={() => setAgentEnabled((prev) => !prev)}
-                className={`relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  agentEnabled ? "bg-orange-500/80 dark:bg-white/20" : "bg-zinc-300 dark:bg-zinc-800"
-                }`}
-                style={agentEnabled ? { backgroundColor: selectedModel.colors.primary } : {}}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    agentEnabled ? "translate-x-6" : "translate-x-0"
-                  }`}
-                />
-              </button>
             </div>
 
             {/* Launch Action Button */}

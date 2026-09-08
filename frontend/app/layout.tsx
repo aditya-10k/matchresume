@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/layout/Navbar";
+import AppShell from "@/components/layout/AppShell";
 import { ModelProvider } from "@/context/ModelContext";
 
 const geistSans = Geist({
@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Resume Copilot — AI Career Studio",
+  title: "matchresume",
   description: "Personal AI career intelligence system powered by RAG and autonomous agents.",
 };
 
@@ -29,10 +29,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
-      <body className="min-h-screen flex flex-col text-zinc-900 dark:text-zinc-100 antialiased">
+      <body className="min-h-screen text-zinc-900 dark:text-zinc-100 antialiased">
         <ModelProvider>
-          <Navbar />
-          <main className="flex-1 pb-16">{children}</main>
+          <AppShell>{children}</AppShell>
         </ModelProvider>
       </body>
     </html>

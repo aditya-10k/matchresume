@@ -102,7 +102,8 @@ async def upload_resume(
         filename=db_resume.filename,
         status=db_resume.status,
         created_at=db_resume.created_at,
-        text_preview=raw_text[:200] + "..." if len(raw_text) > 200 else raw_text
+        text_preview=raw_text[:200] + "..." if len(raw_text) > 200 else raw_text,
+        raw_text=raw_text
     )
 
 
@@ -119,7 +120,8 @@ def list_resumes(db: Session = Depends(get_db)):
             filename=r.filename,
             status=r.status,
             created_at=r.created_at,
-            text_preview=preview
+            text_preview=preview,
+            raw_text=r.raw_text
         ))
     return results
 

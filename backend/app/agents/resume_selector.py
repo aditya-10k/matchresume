@@ -46,97 +46,60 @@ Return JSON in this format:
                 reason="No resumes found in the knowledge base. Please upload a resume first."
             )
 
-        # Build evidence map by resume_id
-        resume_scores: List[Tuple[Resume, int, List[str], List[str], str]] = []
-
-        all_req_skills = set([s.lower() for s in requirements.required_skills + requirements.preferred_skills])
-
-        for resume in available_resumes:
-            resume_text_lower = resume.raw_text.lower()
-            matching_skills = []
-            missing_skills = []
-
-            for skill in requirements.required_skills + requirements.preferred_skills:
-                pattern = rf"\b{re.escape(skill.lower())}\b"
-                if re.search(pattern, resume_text_lower):
-                    matching_skills.append(skill)
-                else:
-                    missing_skills.append(skill)
-
-            # Heuristic score calculation
-            total_reqs = len(requirements.required_skills) or 1
-            matched_reqs = len([s for s in matching_skills if s in requirements.required_skills])
-            
-            base_score = int((matched_reqs / total_reqs) * 80)
-            bonus_score = min(20, len([s for s in matching_skills if s in requirements.preferred_skills]) * 5)
-            final_score = min(98, max(35, base_score + bonus_score))
-
-            reason = (
-                f"{resume.name} matches {len(matching_skills)} of the target skills "
-                f"with strong coverage in {', '.join(matching_skills[:3]) if matching_skills else 'core competencies'}."
+        # If JD has no extracted requirements, score is 0
+        if not requirements.required_skills and not requirements.preferred_skills:
+            first_resume = available_resumes[0]
+            return RecommendedResume(
+                resume_id=first_resume.id,
+                resume_name=first_resume.name,
+                match_score=0,
+                strengths=[],
+                gaps=[],
+                reason="No technical skills or requirements were identified in the job description to evaluate against."
             )
 
-            resume_scores.append((resume, final_score, matching_skills, missing_skills, reason))
+        # Format candidates for LLM evaluation
+        candidates_summary = [
+            {
+                "id": r.id,
+                "name": r.name,
+                "text_excerpt": r.raw_text[:1200]
+            }
+            for r in available_resumes
+        ]
 
-        # Sort by match score descending
-        resume_scores.sort(key=lambda x: x[1], reverse=True)
-        best_resume, best_score, strengths, gaps, fallback_reason = resume_scores[0]
-
-        # If Groq is available, ask LLM to refine reason and comparison
-        if groq_client.is_configured:
-            candidates_summary = [
-                {
-                    "id": r.id,
-                    "name": r.name,
-                    "matched_skills": m,
-                    "unmatched_skills": g,
-                    "preliminary_score": sc
-                }
-                for r, sc, m, g, _ in resume_scores
-            ]
-            user_prompt = f"""
-JD Requirements:
+        user_prompt = f"""
+Target Position & Requirements:
 {requirements.model_dump_json(indent=2)}
 
-Candidate Resumes:
+Available Candidate Resumes:
 {candidates_summary}
 
-Retrieved Evidence Snippets:
+Retrieved RAG Evidence Snippets:
 {[e.model_dump() for e in all_evidence[:6]]}
+
+Instructions:
+Evaluate the candidate resumes against the job description requirements and retrieved evidence.
+Select the candidate whose background best aligns with the role.
+Return a valid JSON object matching the schema.
 """
-            fallback_dict = {
-                "resume_id": best_resume.id,
-                "match_score": best_score,
-                "strengths": strengths[:6],
-                "gaps": gaps[:6],
-                "reason": fallback_reason
-            }
-            try:
-                llm_eval = groq_client.generate_json(
-                    system_prompt=self.SYSTEM_PROMPT,
-                    user_prompt=user_prompt,
-                    fallback_data=fallback_dict
-                )
-                chosen_id = llm_eval.get("resume_id") or best_resume.id
-                chosen_resume = next((r for r in available_resumes if r.id == chosen_id), best_resume)
-                return RecommendedResume(
-                    resume_id=chosen_resume.id,
-                    resume_name=chosen_resume.name,
-                    match_score=int(llm_eval.get("match_score", best_score)),
-                    strengths=llm_eval.get("strengths", strengths[:6]),
-                    gaps=llm_eval.get("gaps", gaps[:6]),
-                    reason=llm_eval.get("reason", fallback_reason)
-                )
-            except Exception:
-                pass
+
+        llm_eval = groq_client.generate_json(
+            system_prompt=self.SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+            temperature=0.0
+        )
+
+        chosen_id = llm_eval.get("resume_id")
+        chosen_resume = next((r for r in available_resumes if r.id == chosen_id), available_resumes[0])
 
         return RecommendedResume(
-            resume_id=best_resume.id,
-            resume_name=best_resume.name,
-            match_score=best_score,
-            strengths=strengths[:6],
-            gaps=gaps[:6],
-            reason=fallback_reason
+            resume_id=chosen_resume.id,
+            resume_name=chosen_resume.name,
+            match_score=int(llm_eval.get("match_score", 0)),
+            strengths=llm_eval.get("strengths") or [],
+            gaps=llm_eval.get("gaps") or [],
+            reason=llm_eval.get("reason") or "LLM candidate evaluation complete."
         )
 
 
