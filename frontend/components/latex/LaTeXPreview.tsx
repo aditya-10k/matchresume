@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { Printer, Eye, FileText, ZoomIn, ZoomOut, Maximize2, ShieldCheck, AlertCircle } from "lucide-react";
+import { Printer, Eye, FileText, ZoomIn, ZoomOut, ShieldCheck, AlertCircle } from "lucide-react";
 import { useModel } from "@/context/ModelContext";
 
 export type OutputMode = "latex" | "plaintext";
@@ -182,7 +182,6 @@ function compileLaTeXToResume(latex: string): ParsedResume {
 
       if (headingText.includes("<strong>") || headingText.length > 2) {
         if (!currentSubsection || currentSubsection.items.length > 0) {
-          // New subsection (e.g. Job Role + Date)
           currentSubsection = {
             heading: headingText,
             date,
@@ -193,7 +192,6 @@ function compileLaTeXToResume(latex: string): ParsedResume {
           currentSubsection.heading = headingText;
           currentSubsection.date = date;
         } else if (!currentSubsection.subheading) {
-          // Company / organization subhead (e.g. SVKM EduConnect | educonnect.svkm.ac.in)
           currentSubsection.subheading = headingText;
           if (date && !currentSubsection.date) {
             currentSubsection.date = date;
@@ -343,12 +341,211 @@ function compilePlaintextToResume(text: string): ParsedResume {
   };
 }
 
+/**
+ * Builds standalone, pristine HTML strictly for the PDF printer.
+ * Guarantees that only the resume is printed with 0 browser UI, correct margins, and portrait orientation.
+ */
+function generatePrintableResumeHtml(resume: ParsedResume): string {
+  const sectionsHtml = resume.sections
+    .map(
+      (section) => `
+    <div class="resume-section">
+      <div class="section-header">${section.title}</div>
+      ${section.subsections
+        .map(
+          (sub) => `
+        <div class="subsection-block">
+          ${
+            sub.heading
+              ? `
+            <div class="role-row">
+              <span class="role-title">${sub.heading.replace(/<strong>(.*?)<\/strong>/g, "<strong>$1</strong>")}</span>
+              ${sub.date ? `<span class="date-badge">${sub.date.replace(/--/g, "–")}</span>` : ""}
+            </div>
+          `
+              : ""
+          }
+          ${
+            sub.subheading
+              ? `
+            <div class="subheading-row">${sub.subheading.replace(/<strong>(.*?)<\/strong>/g, "<strong>$1</strong>")}</div>
+          `
+              : ""
+          }
+          ${
+            sub.items && sub.items.length > 0
+              ? `
+            <ul class="bullet-list">
+              ${sub.items
+                .map(
+                  (item) => `
+                <li>${item.replace(/--/g, "–").replace(/<strong>(.*?)<\/strong>/g, "<strong>$1</strong>")}</li>
+              `
+                )
+                .join("")}
+            </ul>
+          `
+              : ""
+          }
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `
+    )
+    .join("");
+
+  const contactsHtml = resume.contactLine
+    .map(
+      (c, i) => `
+    <span class="contact-item">
+      ${i > 0 ? '<span class="bullet-sep">•</span>' : ""}
+      <span>${c}</span>
+    </span>
+  `
+    )
+    .join("");
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${resume.name} - Tailored Resume</title>
+  <style>
+    @page {
+      size: letter portrait;
+      margin: 0.45in 0.55in;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff !important;
+      color: #111111 !important;
+      font-family: 'Times New Roman', Times, 'Latin Modern Roman', 'Computer Modern', Georgia, serif;
+      font-size: 9.5pt;
+      line-height: 1.34;
+    }
+    .document-page {
+      width: 100%;
+      max-width: 8.5in;
+      margin: 0 auto;
+    }
+    .header-block {
+      text-align: center;
+      margin-bottom: 6pt;
+    }
+    .candidate-name {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 20pt;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #000000;
+      margin: 0 0 3pt 0;
+    }
+    .contact-row {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 8.5pt;
+      color: #333333;
+      padding-bottom: 6pt;
+      border-bottom: 1.5px solid #000000;
+    }
+    .contact-item {
+      display: inline-block;
+    }
+    .bullet-sep {
+      margin: 0 5px;
+      color: #888888;
+      font-weight: bold;
+    }
+    .resume-section {
+      margin-top: 7pt;
+    }
+    .section-header {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 9.5pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #000000;
+      border-bottom: 1px solid #000000;
+      padding-bottom: 1.5pt;
+      margin-bottom: 4pt;
+    }
+    .subsection-block {
+      margin-bottom: 4pt;
+    }
+    .role-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: #000000;
+      margin-top: 2pt;
+    }
+    .role-title {
+      color: #000000;
+    }
+    .date-badge {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 8.5pt;
+      font-weight: 500;
+      color: #444444;
+      text-align: right;
+    }
+    .subheading-row {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-size: 8.8pt;
+      font-style: italic;
+      color: #333333;
+      margin-top: 1pt;
+      margin-bottom: 2pt;
+    }
+    .bullet-list {
+      margin: 2pt 0 4pt 14pt;
+      padding: 0;
+      list-style-type: disc;
+    }
+    .bullet-list li {
+      font-size: 8.8pt;
+      line-height: 1.34;
+      color: #1a1a1a;
+      margin-bottom: 1.5pt;
+      padding-left: 1pt;
+    }
+    strong, b {
+      font-weight: 700;
+      color: #000000;
+    }
+  </style>
+</head>
+<body>
+  <div class="document-page">
+    <div class="header-block">
+      <div class="candidate-name">${resume.name}</div>
+      <div class="contact-row">${contactsHtml}</div>
+    </div>
+    ${sectionsHtml}
+  </div>
+</body>
+</html>`;
+}
+
 export default function LaTeXPreview({ latexCode, mode = "latex" }: LaTeXPreviewProps) {
   const { selectedModel } = useModel();
   const printRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<number>(90);
   const [contentHeight, setContentHeight] = useState<number>(0);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   const parsedResume = useMemo(() => {
     return mode === "plaintext"
@@ -362,8 +559,46 @@ export default function LaTeXPreview({ latexCode, mode = "latex" }: LaTeXPreview
     }
   }, [parsedResume, zoom]);
 
-  const handlePrint = () => {
-    window.print();
+  const handleExportPDF = () => {
+    setIsExporting(true);
+    try {
+      const printHtml = generatePrintableResumeHtml(parsedResume);
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "none";
+      iframe.id = "resume-export-iframe";
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow?.document;
+      if (!doc) {
+        window.print();
+        setIsExporting(false);
+        return;
+      }
+
+      doc.open();
+      doc.write(printHtml);
+      doc.close();
+
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        setTimeout(() => {
+          const frame = document.getElementById("resume-export-iframe");
+          if (frame && frame.parentNode) {
+            frame.parentNode.removeChild(frame);
+          }
+          setIsExporting(false);
+        }, 1200);
+      }, 350);
+    } catch (e) {
+      window.print();
+      setIsExporting(false);
+    }
   };
 
   const handleFit = () => {
@@ -450,8 +685,9 @@ export default function LaTeXPreview({ latexCode, mode = "latex" }: LaTeXPreview
 
           {/* Export to PDF Button */}
           <button
-            onClick={handlePrint}
-            className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-md hover:brightness-110 active:scale-95 transition-all"
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold text-white shadow-md hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
             style={{
               background: `linear-gradient(135deg, ${selectedModel.colors.primary} 0%, ${selectedModel.colors.secondary} 100%)`,
               boxShadow: `0 4px 12px ${selectedModel.colors.primary}35`,
@@ -459,7 +695,7 @@ export default function LaTeXPreview({ latexCode, mode = "latex" }: LaTeXPreview
             title="Download or Print A4 PDF"
           >
             <Printer className="h-3.5 w-3.5" />
-            <span>Export to PDF</span>
+            <span>{isExporting ? "Preparing PDF..." : "Export to PDF"}</span>
           </button>
         </div>
       </div>
@@ -483,7 +719,7 @@ export default function LaTeXPreview({ latexCode, mode = "latex" }: LaTeXPreview
           <div
             ref={printRef}
             id="resume-a4-canvas"
-            className="w-full bg-white text-zinc-900 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.08)] rounded-sm p-10 sm:p-14 min-h-[1130px] h-fit shrink-0 font-serif print:p-0 print:shadow-none print:w-full print:min-h-0"
+            className="w-full bg-white text-zinc-900 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.08)] rounded-sm p-10 sm:p-14 min-h-[1130px] h-fit shrink-0 font-serif"
             style={{
               fontFamily: "'Latin Modern Roman', 'Computer Modern', 'Times New Roman', serif",
             }}
@@ -558,27 +794,6 @@ export default function LaTeXPreview({ latexCode, mode = "latex" }: LaTeXPreview
           </div>
         </div>
       </div>
-
-      {/* Embedded Print CSS */}
-      <style jsx global>{`
-        @media print {
-          body {
-            background: #ffffff !important;
-            color: #000000 !important;
-          }
-          nav, header, aside, button, .no-print {
-            display: none !important;
-          }
-          #resume-a4-canvas {
-            box-shadow: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            width: 100% !important;
-            min-height: 0 !important;
-            transform: none !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
