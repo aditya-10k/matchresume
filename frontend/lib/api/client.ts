@@ -35,6 +35,7 @@ export function getStoredModel(): string {
 
 export function getApiHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
   const headers: Record<string, string> = {
+    "Content-Type": "application/json",
     ...additionalHeaders,
   };
 

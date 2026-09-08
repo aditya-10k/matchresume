@@ -39,12 +39,19 @@ class GroqClient:
                 "Please configure your Groq API key in Settings (get a free key at console.groq.com/keys)."
             )
 
-        # Reasoning models (e.g. Qwen, DeepSeek) output <think> tokens which violate Groq proxy's json_object validator
-        is_reasoning_model = any(m in self.model.lower() for m in ["qwen", "deepseek", "think"])
+        # Map prompt-guard and placeholder models to standard Groq generation models
+        effective_model = self.model
+        if "prompt-guard" in self.model.lower():
+            effective_model = "llama-3.3-70b-versatile"
+        elif "gpt-oss" in self.model.lower():
+            effective_model = "llama-3.3-70b-versatile"
 
-        logger.info(f"GroqClient.generate_json dispatching to model '{self.model}' (reasoning={is_reasoning_model}, max_tokens={max_tokens})")
+        # Reasoning models (e.g. Qwen, DeepSeek) output <think> tokens which violate Groq proxy's json_object validator
+        is_reasoning_model = any(m in effective_model.lower() for m in ["qwen", "deepseek", "think"])
+
+        logger.info(f"GroqClient.generate_json dispatching to model '{effective_model}' (requested='{self.model}', reasoning={is_reasoning_model}, max_tokens={max_tokens})")
         kwargs: Dict[str, Any] = {
-            "model": self.model,
+            "model": effective_model,
             "messages": [
                 {"role": "system", "content": f"{system_prompt}\n\nYou must return a valid JSON object only without preamble."},
                 {"role": "user", "content": user_prompt},
@@ -100,10 +107,17 @@ class GroqClient:
                 "Please configure your Groq API key in Settings (get a free key at console.groq.com/keys)."
             )
 
-        is_reasoning_model = any(m in self.model.lower() for m in ["qwen", "deepseek", "think"])
-        logger.info(f"GroqClient.generate_text dispatching to model '{self.model}' (max_tokens={max_tokens})")
+        # Map prompt-guard and placeholder models to standard Groq generation models
+        effective_model = self.model
+        if "prompt-guard" in self.model.lower():
+            effective_model = "llama-3.3-70b-versatile"
+        elif "gpt-oss" in self.model.lower():
+            effective_model = "llama-3.3-70b-versatile"
+
+        is_reasoning_model = any(m in effective_model.lower() for m in ["qwen", "deepseek", "think"])
+        logger.info(f"GroqClient.generate_text dispatching to model '{effective_model}' (requested='{self.model}', max_tokens={max_tokens})")
         kwargs: Dict[str, Any] = {
-            "model": self.model,
+            "model": effective_model,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
