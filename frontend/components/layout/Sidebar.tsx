@@ -14,11 +14,18 @@ import {
   Menu,
   X,
   Sparkles,
-  Activity
+  Activity,
+  Briefcase,
+  Key,
+  User as UserIcon,
+  LogOut,
+  Sliders,
 } from "lucide-react";
 import { checkBackendHealth } from "@/lib/api/resumes";
 import { useModel } from "@/context/ModelContext";
+import { useAuth } from "@/context/AuthContext";
 import ModelSelector from "@/components/ui/ModelSelector";
+import PreferencesModal from "@/components/settings/PreferencesModal";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -28,8 +35,10 @@ interface SidebarProps {
 export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const { selectedModel, colorMode, toggleColorMode, isMounted } = useModel();
+  const { user, groqKey, openAuthModal, openByokModal, logout } = useAuth();
   const [health, setHealth] = useState<{ status: string; mock_rag: boolean } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isPrefsOpen, setIsPrefsOpen] = useState(false);
 
   useEffect(() => {
     checkBackendHealth()
@@ -42,6 +51,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
   const navLinks = [
     { href: "/", label: "Studio", icon: Layers },
     { href: "/resumes", label: "Resume Vault", icon: FileText },
+    { href: "/applications", label: "Applications", icon: Briefcase },
     { href: "/applications/new", label: "New Tailor", icon: Plus },
   ];
 
@@ -152,11 +162,59 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
                 })}
               </nav>
 
-              <div className="mt-6 pt-5 border-t border-zinc-200 dark:border-white/10">
-                <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">
+              <div className="mt-5 pt-4 border-t border-zinc-200 dark:border-white/10 space-y-2">
+                <div className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">
                   Active Intelligence Model
                 </div>
                 <ModelSelector direction="down" />
+
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      openByokModal();
+                    }}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900 text-xs font-semibold text-zinc-700 dark:text-zinc-200"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Key className="w-3.5 h-3.5 text-orange-500" />
+                      <span>Groq API Key (BYOK)</span>
+                    </div>
+                    <span className={`h-2 w-2 rounded-full ${groqKey || user?.has_groq_key ? "bg-emerald-500" : "bg-amber-500 animate-pulse"}`} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      setIsPrefsOpen(true);
+                    }}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2 border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900 text-xs font-semibold text-zinc-700 dark:text-zinc-200"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Tailoring Preferences</span>
+                  </button>
+
+                  {user ? (
+                    <div className="flex items-center justify-between rounded-xl px-3 py-2 border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900 text-xs">
+                      <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">{user.name}</span>
+                      <button onClick={logout} className="text-red-500 hover:underline text-xs">Sign Out</button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        openAuthModal();
+                      }}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-3 py-2 text-xs font-semibold text-white shadow-sm"
+                    >
+                      <UserIcon className="w-3.5 h-3.5" />
+                      <span>Sign In / Register</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -281,7 +339,113 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
         </div>
 
         {/* Bottom Utility Bar */}
-        <div className="p-3 border-t border-zinc-200/80 dark:border-white/10 flex flex-col gap-2.5">
+        <div className="p-3 border-t border-zinc-200/80 dark:border-white/10 flex flex-col gap-2">
+          {/* BYOK & Account Controls */}
+          {!isCollapsed ? (
+            <div className="space-y-1.5">
+              {/* BYOK Status Button */}
+              <button
+                type="button"
+                onClick={openByokModal}
+                className="w-full flex items-center justify-between rounded-xl px-2.5 py-1.5 border border-zinc-200/70 dark:border-white/10 bg-zinc-50/70 dark:bg-zinc-900/40 hover:border-orange-500/30 transition text-left"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Key className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                  <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 truncate">
+                    Groq Key (BYOK)
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      groqKey || user?.has_groq_key
+                        ? "bg-emerald-500 shadow-sm shadow-emerald-500/50"
+                        : "bg-amber-500 animate-pulse"
+                    }`}
+                  />
+                  <span className="text-[10px] font-medium text-zinc-500">
+                    {groqKey || user?.has_groq_key ? "Active" : "Required"}
+                  </span>
+                </div>
+              </button>
+
+              {/* Preferences Button */}
+              <button
+                type="button"
+                onClick={() => setIsPrefsOpen(true)}
+                className="w-full flex items-center justify-between rounded-xl px-2.5 py-1.5 border border-zinc-200/70 dark:border-white/10 bg-zinc-50/70 dark:bg-zinc-900/40 hover:border-orange-500/30 transition text-left text-[11px] text-zinc-700 dark:text-zinc-300"
+              >
+                <div className="flex items-center gap-2">
+                  <Sliders className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                  <span className="font-semibold">Preferences</span>
+                </div>
+                <span className="text-[10px] text-zinc-500">Memory</span>
+              </button>
+
+              {/* User Account Button */}
+              <div className="flex items-center justify-between rounded-xl px-2.5 py-1.5 border border-zinc-200/70 dark:border-white/10 bg-zinc-50/70 dark:bg-zinc-900/40">
+                {user ? (
+                  <>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-5 h-5 rounded-full bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {user.name ? user.name[0].toUpperCase() : "U"}
+                      </div>
+                      <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200 truncate">
+                        {user.name}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={logout}
+                      className="p-1 text-zinc-400 hover:text-red-500 transition rounded"
+                      title="Sign Out"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openAuthModal}
+                    className="w-full flex items-center justify-center gap-1.5 py-0.5 text-[11px] font-semibold text-orange-600 dark:text-orange-400 hover:underline"
+                  >
+                    <UserIcon className="w-3.5 h-3.5" />
+                    <span>Sign In / Register</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1.5">
+              <button
+                type="button"
+                onClick={openByokModal}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-200 dark:border-white/10 text-orange-500 hover:bg-orange-500/10 transition"
+                title={`BYOK Key: ${groqKey || user?.has_groq_key ? "Active" : "Required"}`}
+              >
+                <Key className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsPrefsOpen(true)}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-500 hover:text-orange-500 hover:bg-orange-500/10 transition"
+                title="Preferences & Memory"
+              >
+                <Sliders className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={user ? logout : openAuthModal}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-200 dark:border-white/10 text-zinc-500 hover:text-orange-500 hover:bg-orange-500/10 transition"
+                title={user ? `Signed in as ${user.name} (Click to log out)` : "Sign In"}
+              >
+                {user ? <LogOut className="h-4 w-4 text-zinc-400" /> : <UserIcon className="h-4 w-4" />}
+              </button>
+            </div>
+          )}
+
           {/* Active Model Selector */}
           {!isCollapsed ? (
             <div className="rounded-xl border border-zinc-200/80 dark:border-white/10 bg-zinc-50/70 dark:bg-zinc-900/40 p-2 backdrop-blur-md">
@@ -299,7 +463,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
             </div>
           )}
 
-          {/* Theme Mode Toggle (Spacious, elegant, never overlapping) */}
+          {/* Theme Mode Toggle */}
           {!isCollapsed ? (
             <div className="flex items-center justify-between rounded-xl px-2.5 py-1.5 border border-zinc-200/70 dark:border-white/10 bg-zinc-50/70 dark:bg-zinc-900/40">
               <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
@@ -366,6 +530,9 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
           ) : null}
         </div>
       </aside>
+
+      {/* Preferences Modal */}
+      <PreferencesModal isOpen={isPrefsOpen} onClose={() => setIsPrefsOpen(false)} />
     </>
   );
 }

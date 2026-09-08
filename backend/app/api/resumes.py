@@ -9,6 +9,7 @@ from app.db.models import Resume, User
 from app.schemas.resume import ResumeResponse, ResumeDetailResponse
 from app.services.pdf_service import extract_text_from_pdf_bytes
 from app.rag import ingest_resume
+from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/resumes", tags=["Resumes"])
 
@@ -17,7 +18,8 @@ router = APIRouter(prefix="/resumes", tags=["Resumes"])
 async def upload_resume(
     file: UploadFile = File(...),
     name: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Upload and parse a resume PDF:
@@ -86,6 +88,7 @@ async def upload_resume(
     # Persist in relational DB
     db_resume = Resume(
         id=resume_id,
+        user_id=current_user.id,
         name=display_name,
         filename=file.filename,
         file_path=stored_path,
@@ -108,9 +111,17 @@ async def upload_resume(
 
 
 @router.get("", response_model=List[ResumeResponse])
-def list_resumes(db: Session = Depends(get_db)):
-    """Retrieve all uploaded resumes from PostgreSQL."""
-    resumes = db.query(Resume).order_by(Resume.created_at.desc()).all()
+def list_resumes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Retrieve all uploaded resumes for the current user."""
+    resumes = (
+        db.query(Resume)
+        .filter((Resume.user_id == current_user.id) | (Resume.user_id == None))
+        .order_by(Resume.created_at.desc())
+        .all()
+    )
     results = []
     for r in resumes:
         preview = r.raw_text[:200] + "..." if len(r.raw_text) > 200 else r.raw_text

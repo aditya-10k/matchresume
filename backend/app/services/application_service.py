@@ -2,7 +2,7 @@ import uuid
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 
-from app.db.models import Application, Resume, GeneratedResume
+from app.db.models import Application, Resume, GeneratedResume, UserPreference
 from app.schemas.application import ApplicationCreate, AnalysisResponse, JDRequirements
 from app.agents.orchestrator import orchestrator
 from app.rag import retrieve_context
@@ -14,11 +14,13 @@ class ApplicationService:
     def create_application(
         self,
         db: Session,
-        data: ApplicationCreate
+        data: ApplicationCreate,
+        user_id: Optional[str] = None
     ) -> Application:
         app_id = str(uuid.uuid4())
         application = Application(
             id=app_id,
+            user_id=user_id,
             jd_text=data.jd_text,
             company=data.company,
             role_title=data.role_title,
@@ -29,28 +31,48 @@ class ApplicationService:
         db.refresh(application)
         return application
 
-    def get_application(self, db: Session, application_id: str) -> Optional[Application]:
-        return db.query(Application).filter(Application.id == application_id).first()
+    def get_application(self, db: Session, application_id: str, user_id: Optional[str] = None) -> Optional[Application]:
+        query = db.query(Application).filter(Application.id == application_id)
+        if user_id:
+            query = query.filter((Application.user_id == user_id) | (Application.user_id == None))
+        return query.first()
 
-    def list_applications(self, db: Session) -> List[Application]:
-        return db.query(Application).order_by(Application.created_at.desc()).all()
+    def list_applications(self, db: Session, user_id: Optional[str] = None) -> List[Application]:
+        query = db.query(Application)
+        if user_id:
+            query = query.filter((Application.user_id == user_id) | (Application.user_id == None))
+        return query.order_by(Application.created_at.desc()).all()
 
     def analyze_application(
         self,
         db: Session,
-        application_id: str
+        application_id: str,
+        groq_api_key: Optional[str] = None,
+        user_id: Optional[str] = None
     ) -> AnalysisResponse:
-        application = self.get_application(db, application_id)
+        application = self.get_application(db, application_id, user_id=user_id)
         if not application:
             raise ValueError(f"Application {application_id} not found")
 
-        available_resumes = db.query(Resume).all()
+        # Query resumes scoped to user or shared
+        resume_query = db.query(Resume)
+        if user_id:
+            resume_query = resume_query.filter((Resume.user_id == user_id) | (Resume.user_id == None))
+        available_resumes = resume_query.all()
+
+        # Load user preferences (memory)
+        pref_strings = []
+        if user_id:
+            prefs = db.query(UserPreference).filter(UserPreference.user_id == user_id).all()
+            pref_strings = [f"{p.key}: {p.value}" for p in prefs]
 
         analysis = orchestrator.analyze(
             application_id=application.id,
             jd_text=application.jd_text,
             available_resumes=available_resumes,
-            agent_enabled=application.agent_enabled
+            agent_enabled=application.agent_enabled,
+            groq_api_key=groq_api_key,
+            user_preferences=pref_strings
         )
 
         # Update application state
@@ -69,15 +91,21 @@ class ApplicationService:
 
         return analysis
 
-    def tailor_application(self, db: Session, application_id: str) -> Dict[str, Any]:
+    def tailor_application(
+        self,
+        db: Session,
+        application_id: str,
+        groq_api_key: Optional[str] = None,
+        user_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Runs the ResumeWriter and Validator agent pipeline to tailor resume LaTeX."""
-        application = self.get_application(db, application_id)
+        application = self.get_application(db, application_id, user_id=user_id)
         if not application:
             raise ValueError(f"Application {application_id} not found")
 
         if not application.selected_resume_id:
-            self.analyze_application(db, application_id)
-            application = self.get_application(db, application_id)
+            self.analyze_application(db, application_id, groq_api_key=groq_api_key, user_id=user_id)
+            application = self.get_application(db, application_id, user_id=user_id)
 
         selected_resume = db.query(Resume).filter(Resume.id == application.selected_resume_id).first()
         if not selected_resume:
@@ -90,10 +118,18 @@ class ApplicationService:
             chunks = retrieve_context(query=term, top_k=2)
             evidence_chunks.extend(chunks)
 
+        # Load user preferences (memory)
+        pref_strings = []
+        if user_id:
+            prefs = db.query(UserPreference).filter(UserPreference.user_id == user_id).all()
+            pref_strings = [f"{p.key}: {p.value}" for p in prefs]
+
         tailored_data = orchestrator.tailor_resume(
             requirements=requirements,
             resume=selected_resume,
-            evidence_chunks=evidence_chunks
+            evidence_chunks=evidence_chunks,
+            groq_api_key=groq_api_key,
+            user_preferences=pref_strings
         )
 
         gen_resume = GeneratedResume(

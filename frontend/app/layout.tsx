@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/layout/AppShell";
 import { ModelProvider } from "@/context/ModelContext";
+import { AuthProvider } from "@/context/AuthContext";
+import AuthModal from "@/components/auth/AuthModal";
+import BYOKModal from "@/components/settings/BYOKModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,9 +33,13 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-screen text-zinc-900 dark:text-zinc-100 antialiased">
-        <ModelProvider>
-          <AppShell>{children}</AppShell>
-        </ModelProvider>
+        <AuthProvider>
+          <ModelProvider>
+            <AppShell>{children}</AppShell>
+            <AuthModal />
+            <BYOKModal />
+          </ModelProvider>
+        </AuthProvider>
       </body>
     </html>
   );

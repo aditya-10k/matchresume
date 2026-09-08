@@ -65,3 +65,18 @@ export interface UploadStage {
   label: string;
   description: string;
 }
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  has_groq_key: boolean;
+  masked_key?: string;
+}
+
+export interface UserPreference {
+  id: string;
+  key: string;
+  value: string;
+  updated_at: string;
+}

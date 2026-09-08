@@ -27,7 +27,10 @@ class User(Base):
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     email = Column(String(255), unique=True, index=True, nullable=True)
-    name = Column(String(255), nullable=False, default="Default User")
+    name = Column(String(255), nullable=False, default="User")
+    hashed_password = Column(String(255), nullable=True)
+    encrypted_groq_key = Column(String(512), nullable=True)
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=now_utc)
 
     resumes = relationship("Resume", back_populates="user", cascade="all, delete-orphan")

@@ -18,9 +18,15 @@ class Settings(BaseSettings):
         "http://localhost:3001",
     ]
 
-    # LLM (Groq)
+    # LLM (Groq) - Fallback for dev mode only; production uses BYOK
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
+    # Security & Auth
+    JWT_SECRET_KEY: str = "matchresume-super-secret-jwt-key-change-in-prod-2026"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    ENCRYPTION_KEY: str = "yR7gU_0wz3D5P9L6F2M8A4Q1J5X8T7K2N4V0Z3C6E9A="
 
     # RAG Settings
     USE_MOCK_RAG: bool = True

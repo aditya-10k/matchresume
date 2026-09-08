@@ -1,9 +1,9 @@
 import { Resume } from "@/lib/types";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+import { API_BASE, getApiHeaders } from "./client";
 
 export async function fetchResumes(): Promise<Resume[]> {
   const res = await fetch(`${API_BASE}/resumes`, {
+    headers: getApiHeaders(),
     cache: "no-store",
   });
   if (!res.ok) {
@@ -14,6 +14,7 @@ export async function fetchResumes(): Promise<Resume[]> {
 
 export async function getResume(id: string): Promise<Resume> {
   const res = await fetch(`${API_BASE}/resumes/${id}`, {
+    headers: getApiHeaders(),
     cache: "no-store",
   });
   if (!res.ok) {
@@ -29,8 +30,12 @@ export async function uploadResume(file: File, name?: string): Promise<Resume> {
     formData.append("name", name.trim());
   }
 
+  const headers = getApiHeaders();
+  delete headers["Content-Type"];
+
   const res = await fetch(`${API_BASE}/resumes`, {
     method: "POST",
+    headers,
     body: formData,
   });
 
@@ -53,6 +58,7 @@ export async function uploadResume(file: File, name?: string): Promise<Resume> {
 export async function deleteResume(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/resumes/${id}`, {
     method: "DELETE",
+    headers: getApiHeaders(),
   });
   if (!res.ok && res.status !== 204) {
     throw new Error(`Failed to delete resume: ${res.statusText}`);

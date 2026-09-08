@@ -9,7 +9,8 @@ import {
   RefreshCw,
   FileCheck,
   Sliders,
-  AlertCircle
+  AlertCircle,
+  MessageSquare,
 } from "lucide-react";
 import { useModel } from "@/context/ModelContext";
 import {
@@ -21,6 +22,8 @@ import {
 import { Application } from "@/lib/types";
 import LaTeXEditor from "@/components/latex/LaTeXEditor";
 import LaTeXPreview from "@/components/latex/LaTeXPreview";
+import ChatRefinementDrawer from "@/components/latex/ChatRefinementDrawer";
+import PreferencesModal from "@/components/settings/PreferencesModal";
 
 export default function LaTeXStudioPage() {
   const params = useParams();
@@ -37,6 +40,8 @@ export default function LaTeXStudioPage() {
   const [loading, setLoading] = useState(true);
   const [isTailoring, setIsTailoring] = useState(false);
   const [error, setError] = useState("");
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
 
   const loadData = async () => {
     try {
@@ -162,6 +167,30 @@ export default function LaTeXStudioPage() {
         {/* Studio Actions */}
         <div className="flex items-center gap-2">
           <button
+            type="button"
+            onClick={() => setIsPreferencesOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-white/10 bg-white/80 dark:bg-zinc-800/80 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition"
+            title="Tailoring Preferences & Memory"
+          >
+            <Sliders className="h-3.5 w-3.5 text-orange-500" />
+            <span className="hidden sm:inline">Preferences</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+              isChatOpen
+                ? "border-orange-500 bg-orange-500/10 text-orange-600 dark:text-orange-400 font-bold"
+                : "border-zinc-200 dark:border-white/10 bg-white/80 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-200 hover:border-orange-500/30"
+            }`}
+            title="Live Conversational AI Refinement"
+          >
+            <MessageSquare className="h-3.5 w-3.5 text-orange-500" />
+            <span>AI Copilot</span>
+          </button>
+
+          <button
             onClick={handleGenerateTailored}
             disabled={isTailoring}
             className="flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all hover:brightness-110 active:scale-95 text-white"
@@ -200,6 +229,20 @@ export default function LaTeXStudioPage() {
           <LaTeXPreview latexCode={latexCode} />
         </div>
       </div>
+
+      {/* Conversational Refinement Drawer */}
+      <ChatRefinementDrawer
+        applicationId={applicationId}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onLatexUpdated={handleCodeChange}
+      />
+
+      {/* Tailoring Preferences Modal */}
+      <PreferencesModal
+        isOpen={isPreferencesOpen}
+        onClose={() => setIsPreferencesOpen(false)}
+      />
     </div>
   );
 }

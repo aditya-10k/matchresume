@@ -54,13 +54,20 @@ Return valid JSON with this exact schema:
         jd_requirements: JDRequirements,
         candidate_name: str,
         candidate_raw_text: str,
-        evidence_chunks: List[EvidenceChunk]
+        evidence_chunks: List[EvidenceChunk],
+        api_key: Optional[str] = None,
+        user_preferences: Optional[List[str]] = None,
     ) -> TailoredResumeOutput:
         """Tailors candidate experience into an ATS-friendly LaTeX document."""
+        prefs_section = ""
+        if user_preferences:
+            prefs_text = "\n".join([f"- {p}" for p in user_preferences])
+            prefs_section = f"\nUSER TAILORING PREFERENCES & CONSTRAINTS:\n{prefs_text}\n"
+
         user_prompt = f"""
 TARGET JOB REQUIREMENTS:
 {jd_requirements.model_dump_json(indent=2)}
-
+{prefs_section}
 CANDIDATE SOURCE RESUME ({candidate_name}):
 ```
 {candidate_raw_text[:3500]}
@@ -70,11 +77,12 @@ RETRIEVED FACTUAL EVIDENCE CHUNKS:
 {[e.model_dump() for e in evidence_chunks[:6]]}
 
 Instructions:
-Synthesize a tailored LaTeX resume that aligns with the target job requirements while remaining 100% faithful to the candidate's actual history.
+Synthesize a tailored LaTeX resume that aligns with the target job requirements and adheres to the user preferences while remaining 100% faithful to the candidate's actual history.
 Ensure all LaTeX formatting is pristine, escapes are complete, and return valid JSON.
 """
 
-        data = groq_client.generate_json(
+        client = groq_client if not api_key else groq_client.__class__(api_key=api_key)
+        data = client.generate_json(
             system_prompt=self.SYSTEM_PROMPT,
             user_prompt=user_prompt,
             temperature=0.1

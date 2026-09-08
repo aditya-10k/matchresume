@@ -33,7 +33,8 @@ Return JSON in this format:
         self,
         requirements: JDRequirements,
         available_resumes: List[Resume],
-        all_evidence: List[EvidenceChunk]
+        all_evidence: List[EvidenceChunk],
+        api_key: Optional[str] = None
     ) -> RecommendedResume:
         """Determines the strongest candidate resume for the given requirements."""
         if not available_resumes:
@@ -84,7 +85,8 @@ Select the candidate whose background best aligns with the role.
 Return a valid JSON object matching the schema.
 """
 
-        llm_eval = groq_client.generate_json(
+        client = groq_client if not api_key else groq_client.__class__(api_key=api_key)
+        llm_eval = client.generate_json(
             system_prompt=self.SYSTEM_PROMPT,
             user_prompt=user_prompt,
             temperature=0.0

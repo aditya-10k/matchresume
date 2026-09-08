@@ -50,13 +50,7 @@ Return valid JSON:
 }
 """
 
-    def validate(
-        self,
-        latex_code: str,
-        source_resume_text: str
-    ) -> ValidationReport:
-        """Audits generated LaTeX code for structural and factual accuracy."""
-        # Static LaTeX syntax check
+    def check_latex_syntax_static(self, latex_code: str) -> List[str]:
         syntax_warnings = []
         open_braces = latex_code.count("{")
         close_braces = latex_code.count("}")
@@ -65,7 +59,18 @@ Return valid JSON:
 
         if "\\begin{document}" not in latex_code or "\\end{document}" not in latex_code:
             syntax_warnings.append("Missing \\begin{document} or \\end{document} enclosure.")
+        return syntax_warnings
 
+    def validate(
+        self,
+        latex_code: str,
+        source_resume_text: str = "",
+        api_key: Optional[str] = None
+    ) -> ValidationReport:
+        """Validates LaTeX syntax and audits factual alignment."""
+        syntax_warnings = self.check_latex_syntax_static(latex_code)
+
+        client = groq_client if not api_key else groq_client.__class__(api_key=api_key)
         user_prompt = f"""
 SOURCE CANDIDATE RESUME:
 ```
@@ -82,7 +87,7 @@ Perform the factual audit and LaTeX syntax check. Identify any hallucinated clai
 """
 
         try:
-            data = groq_client.generate_json(
+            data = client.generate_json(
                 system_prompt=self.SYSTEM_PROMPT,
                 user_prompt=user_prompt,
                 temperature=0.0

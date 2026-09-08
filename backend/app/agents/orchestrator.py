@@ -20,6 +20,8 @@ class AgentState(TypedDict, total=False):
     jd_text: str
     available_resumes: List[Any]
     agent_enabled: bool
+    groq_api_key: Optional[str]
+    user_preferences: Optional[List[str]]
     
     # Node outputs
     guardrail_result: Optional[GuardrailResult]
@@ -34,7 +36,7 @@ class AgentState(TypedDict, total=False):
 def guardrail_node(state: AgentState) -> Dict[str, Any]:
     """Node 1: Evaluates prompt safety and verifies it is a legitimate JD."""
     logger.info("LangGraph [Node 1]: Guardrail Agent evaluating prompt...")
-    result = guardrail_agent.check(state["jd_text"])
+    result = guardrail_agent.check(state["jd_text"], api_key=state.get("groq_api_key"))
     if not result.is_valid:
         return {
             "guardrail_result": result,
@@ -54,7 +56,7 @@ def should_continue_from_guardrail(state: AgentState) -> str:
 def jd_analyzer_node(state: AgentState) -> Dict[str, Any]:
     """Node 2: Extracts structured requirements from verified JD."""
     logger.info("LangGraph [Node 2]: JD Analyzer parsing requirements...")
-    requirements = jd_analyzer.analyze(state["jd_text"])
+    requirements = jd_analyzer.analyze(state["jd_text"], api_key=state.get("groq_api_key"))
     return {"requirements": requirements}
 
 
@@ -84,7 +86,8 @@ def resume_selector_node(state: AgentState) -> Dict[str, Any]:
     recommendation = resume_selector.select_best_resume(
         requirements=state["requirements"],
         available_resumes=state.get("available_resumes", []),
-        all_evidence=state.get("evidence_chunks", [])
+        all_evidence=state.get("evidence_chunks", []),
+        api_key=state.get("groq_api_key")
     )
     return {"recommendation": recommendation}
 
@@ -129,13 +132,17 @@ class AnalysisOrchestrator:
         application_id: str,
         jd_text: str,
         available_resumes: List[Resume],
-        agent_enabled: bool = True
+        agent_enabled: bool = True,
+        groq_api_key: Optional[str] = None,
+        user_preferences: Optional[List[str]] = None,
     ) -> AnalysisResponse:
         initial_state: AgentState = {
             "application_id": application_id,
             "jd_text": jd_text,
             "available_resumes": available_resumes,
             "agent_enabled": agent_enabled,
+            "groq_api_key": groq_api_key,
+            "user_preferences": user_preferences or [],
             "evidence_chunks": [],
         }
 
@@ -157,7 +164,9 @@ class AnalysisOrchestrator:
         self,
         requirements: JDRequirements,
         resume: Resume,
-        evidence_chunks: List[EvidenceChunk]
+        evidence_chunks: List[EvidenceChunk],
+        groq_api_key: Optional[str] = None,
+        user_preferences: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Runs ResumeWriter and Validator agents to tailor and audit LaTeX resume."""
         logger.info(f"Synthesizing tailored LaTeX for {resume.name}...")
@@ -165,13 +174,16 @@ class AnalysisOrchestrator:
             jd_requirements=requirements,
             candidate_name=resume.name,
             candidate_raw_text=resume.raw_text,
-            evidence_chunks=evidence_chunks
+            evidence_chunks=evidence_chunks,
+            api_key=groq_api_key,
+            user_preferences=user_preferences,
         )
 
         logger.info("Auditing tailored LaTeX with Validator Agent...")
         validation = validator_agent.validate(
             latex_code=tailored.latex_code,
-            source_resume_text=resume.raw_text
+            source_resume_text=resume.raw_text,
+            api_key=groq_api_key,
         )
 
         return {
