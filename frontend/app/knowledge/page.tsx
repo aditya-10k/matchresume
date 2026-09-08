@@ -10,7 +10,7 @@ import {
 } from "@/lib/api/knowledge";
 import FloatingBlobsCanvas from "@/components/knowledge/FloatingBlobsCanvas";
 import BlobDetailModal from "@/components/knowledge/BlobDetailModal";
-import { BrainCircuit, AlertCircle, Orbit, Sparkles } from "lucide-react";
+import { BrainCircuit, AlertCircle } from "lucide-react";
 
 export default function KnowledgeUniversePage() {
   const { selectedModel } = useModel();
@@ -48,85 +48,49 @@ export default function KnowledgeUniversePage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col h-[calc(100vh-4.5rem)] p-3 sm:p-5 max-w-[1700px] mx-auto space-y-3">
-        {/* Minimalist Cosmic Header - No clunky category buttons/legends */}
-        <div className="flex items-center justify-between shrink-0 px-2">
-          <div className="flex items-center gap-3">
+      {/* Full screen starry container - Covers whole screen, no outer margins or title headers */}
+      <div className="relative w-full h-[100dvh] overflow-hidden bg-[#030611]">
+        {loading ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-8 space-y-4 bg-[#030611]">
             <div
-              className="flex h-9 w-9 items-center justify-center rounded-2xl shadow-lg"
+              className="flex h-16 w-16 items-center justify-center rounded-3xl animate-bounce"
               style={{
                 background: `${selectedModel.colors.primary}20`,
                 color: selectedModel.colors.primary,
-                border: `1px solid ${selectedModel.colors.primary}35`,
               }}
             >
-              <Orbit className="h-5 w-5 animate-spin-slow" />
+              <BrainCircuit className="h-8 w-8 animate-pulse" />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
-                Knowledge Cosmos
-                <span
-                  className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
-                  style={{
-                    background: `${selectedModel.colors.primary}18`,
-                    color: selectedModel.colors.primary,
-                    border: `1px solid ${selectedModel.colors.primary}30`,
-                  }}
-                >
-                  RAG Vector Starfield
-                </span>
-              </h1>
-              <p className="text-xs text-zinc-500 hidden sm:block">
-                Organic candidate knowledge nodes scattered across space. Drag or click any star blob to explore verified evidence.
+            <div className="text-center">
+              <h3 className="text-base font-bold text-white">
+                Mapping Candidate Vector Cosmos...
+              </h3>
+              <p className="text-xs text-zinc-400 mt-1 max-w-sm">
+                Mining ChromaDB knowledge chunks and positioning organic star blobs.
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Main Cosmic Stage */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {loading ? (
-            <div className="flex-1 rounded-3xl border border-white/10 bg-[#05060d] backdrop-blur-2xl flex flex-col items-center justify-center p-8 space-y-4 shadow-2xl">
-              <div
-                className="flex h-16 w-16 items-center justify-center rounded-3xl animate-bounce"
-                style={{
-                  background: `${selectedModel.colors.primary}20`,
-                  color: selectedModel.colors.primary,
-                }}
-              >
-                <BrainCircuit className="h-8 w-8 animate-pulse" />
-              </div>
-              <div className="text-center">
-                <h3 className="text-base font-bold text-white">
-                  Igniting Knowledge Starfield...
-                </h3>
-                <p className="text-xs text-zinc-400 mt-1 max-w-sm">
-                  Connecting to ChromaDB and mapping candidate skills as organic celestial blobs.
-                </p>
-              </div>
-            </div>
-          ) : error ? (
-            <div className="flex-1 rounded-3xl border border-rose-500/20 bg-[#05060d] flex flex-col items-center justify-center p-8 text-center">
-              <AlertCircle className="h-10 w-10 text-rose-500 mb-2" />
-              <h3 className="text-base font-bold text-rose-400">
-                Failed to Load Knowledge Cosmos
-              </h3>
-              <p className="text-xs text-zinc-400 mt-1 max-w-sm">{error}</p>
-              <button
-                onClick={loadUniverse}
-                className="mt-4 px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-950"
-              >
-                Try Again
-              </button>
-            </div>
-          ) : data ? (
-            <FloatingBlobsCanvas
-              nodes={data.nodes}
-              onSelectNode={(node) => setSelectedNode(node)}
-              selectedNodeId={selectedNode?.id}
-            />
-          ) : null}
-        </div>
+        ) : error ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-[#030611]">
+            <AlertCircle className="h-10 w-10 text-rose-500 mb-2" />
+            <h3 className="text-base font-bold text-rose-400">
+              Failed to Load Knowledge Cosmos
+            </h3>
+            <p className="text-xs text-zinc-400 mt-1 max-w-sm">{error}</p>
+            <button
+              onClick={loadUniverse}
+              className="mt-4 px-4 py-2 rounded-xl text-xs font-bold bg-white text-zinc-950"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : data ? (
+          <FloatingBlobsCanvas
+            nodes={data.nodes}
+            onSelectNode={(node) => setSelectedNode(node)}
+            selectedNodeId={selectedNode?.id}
+          />
+        ) : null}
 
         {/* Expanding Blob Inspection Modal */}
         <BlobDetailModal

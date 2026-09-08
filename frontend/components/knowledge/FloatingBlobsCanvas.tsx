@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { KnowledgeNode } from "@/lib/api/knowledge";
 import { useModel } from "@/context/ModelContext";
-import { Sparkles, Search, RefreshCw, Layers } from "lucide-react";
+import { Search } from "lucide-react";
 
 interface FloatingBlobsCanvasProps {
   nodes: KnowledgeNode[];
@@ -12,16 +12,16 @@ interface FloatingBlobsCanvasProps {
   selectedNodeId?: string | null;
 }
 
-// Deterministic organic blob border-radius generator based on string seed
-function getOrganicBlobShape(seedStr: string, variant = 0): string {
+// Deterministic organic blob border-radius generator
+function getOrganicBlobShape(seedStr: string): string {
   let hash = 0;
   for (let i = 0; i < seedStr.length; i++) {
-    hash = (hash << 5) - hash + seedStr.charCodeAt(i) + variant * 17;
+    hash = (hash << 5) - hash + seedStr.charCodeAt(i);
     hash |= 0;
   }
   const p = (offset: number) => {
     const val = Math.abs(Math.sin(hash + offset) * 10000) % 1;
-    return Math.floor(32 + val * 42); // between 32% and 74%
+    return Math.floor(30 + val * 45); // between 30% and 75%
   };
   const r1 = p(1);
   const r2 = p(2);
@@ -35,15 +35,12 @@ function getOrganicBlobShape(seedStr: string, variant = 0): string {
 }
 
 interface StarNodePosition {
-  x: number; // percentage 4% to 94%
-  y: number; // percentage 5% to 92%
+  x: number; // percentage across full screen
+  y: number; // percentage across full screen
   size: number;
-  shape1: string;
-  shape2: string;
-  floatDuration: number;
-  floatDelay: number;
-  driftX: number;
-  driftY: number;
+  shape: string;
+  shineDuration: number;
+  shineDelay: number;
 }
 
 export default function FloatingBlobsCanvas({
@@ -55,71 +52,105 @@ export default function FloatingBlobsCanvas({
   const [searchQuery, setSearchQuery] = useState("");
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
-  // Compute organic scattered coordinates for each node (scattered like stars across deep space)
+  // Compute organic scattered coordinates covering the WHOLE screen with repulsion
   const nodePositions = useMemo(() => {
     const posMap: Record<string, StarNodePosition> = {};
-    const n = nodes.length;
-    if (n === 0) return posMap;
+    const count = nodes.length;
+    if (count === 0) return posMap;
 
-    // Use golden ratio spiral / dispersed galaxy clustering
+    // 1. Initial wide scatter across 4 quadrants/clusters of the entire screen
+    const points: { x: number; y: number; id: string; size: number }[] = [];
+
+    // Rows and columns grid-seed for broad full-screen distribution
+    const cols = Math.ceil(Math.sqrt(count * 1.6));
+    const rows = Math.ceil(count / cols);
+
     nodes.forEach((node, i) => {
-      // Golden angle distribution for starry natural scatter
-      const angle = i * 2.39996; // golden angle in radians
-      const radiusFraction = Math.sqrt((i + 1) / (n + 2)); // square root for uniform disk spread
-
-      // Map to canvas bounds (with padding)
-      const centerX = 50;
-      const centerY = 50;
-      const spreadX = 42; // percentage spread
-      const spreadY = 40;
-
-      // Add pseudo-random organic jitter so it never looks like a sterile grid or perfect spiral
       let seed = 0;
       for (let c = 0; c < node.id.length; c++) seed += node.id.charCodeAt(c);
-      const jitterX = ((seed % 17) - 8) * 1.8;
-      const jitterY = (((seed * 7) % 19) - 9) * 1.8;
 
-      let x = centerX + Math.cos(angle) * (radiusFraction * spreadX) + jitterX;
-      let y = centerY + Math.sin(angle) * (radiusFraction * spreadY) + jitterY;
+      const col = i % cols;
+      const row = Math.floor(i / cols);
 
-      // Clamp safely inside canvas view
-      x = Math.max(5, Math.min(92, x));
-      y = Math.max(6, Math.min(90, y));
+      // Base coordinate from cell
+      const baseCellX = 7 + (col / (cols - 1 || 1)) * 86;
+      const baseCellY = 8 + (row / (rows - 1 || 1)) * 84;
 
-      // Determine organic size based on weight and category
-      let baseSize = 75;
-      if (node.category === "domains") baseSize = 145;
-      else if (node.category === "projects") baseSize = 125;
-      else if (node.category === "experience") baseSize = 115;
-      else if (node.weight >= 75) baseSize = 92;
-      else if (node.weight < 60) baseSize = 68;
+      // Jitter
+      const jitterX = (((seed * 13) % 21) - 10) * 1.5;
+      const jitterY = (((seed * 29) % 21) - 10) * 1.5;
 
-      posMap[node.id] = {
-        x,
-        y,
-        size: baseSize,
-        shape1: getOrganicBlobShape(node.id, 1),
-        shape2: getOrganicBlobShape(node.id, 2),
-        floatDuration: 5 + (seed % 6) * 0.8,
-        floatDelay: (seed % 9) * 0.4,
-        driftX: ((seed % 7) - 3) * 3,
-        driftY: (((seed * 3) % 9) - 4) * 3.5,
+      let x = baseCellX + jitterX;
+      let y = baseCellY + jitterY;
+
+      x = Math.max(6, Math.min(94, x));
+      y = Math.max(7, Math.min(93, y));
+
+      let baseSize = 80;
+      if (node.category === "domains") baseSize = 135;
+      else if (node.category === "projects") baseSize = 115;
+      else if (node.category === "experience") baseSize = 105;
+      else if (node.weight >= 80) baseSize = 92;
+      else if (node.weight < 60) baseSize = 72;
+
+      points.push({ x, y, id: node.id, size: baseSize });
+    });
+
+    // 2. Physics-based pairwise repulsion relaxation to prevent clumps
+    const iterations = 35;
+    for (let iter = 0; iter < iterations; iter++) {
+      for (let i = 0; i < points.length; i++) {
+        for (let j = i + 1; j < points.length; j++) {
+          const dx = points[i].x - points[j].x;
+          const dy = points[i].y - points[j].y;
+          // Scale distance in percentage space (aspect ratio correction approx 1.6)
+          const dist = Math.sqrt((dx * 1.6) * (dx * 1.6) + dy * dy);
+          const minDist = ((points[i].size + points[j].size) / 2) * 0.14; // minimum buffer
+
+          if (dist < minDist && dist > 0.001) {
+            const overlap = (minDist - dist) / dist;
+            const force = overlap * 0.35;
+            points[i].x += dx * force;
+            points[i].y += dy * force;
+            points[j].x -= dx * force;
+            points[j].y -= dy * force;
+
+            points[i].x = Math.max(5, Math.min(95, points[i].x));
+            points[i].y = Math.max(6, Math.min(94, points[i].y));
+            points[j].x = Math.max(5, Math.min(95, points[j].x));
+            points[j].y = Math.max(6, Math.min(94, points[j].y));
+          }
+        }
+      }
+    }
+
+    // Assign final steady positions
+    points.forEach((p, idx) => {
+      let seed = 0;
+      for (let c = 0; c < p.id.length; c++) seed += p.id.charCodeAt(c);
+      posMap[p.id] = {
+        x: p.x,
+        y: p.y,
+        size: p.size,
+        shape: getOrganicBlobShape(p.id),
+        shineDuration: 2.8 + (seed % 5) * 0.7,
+        shineDelay: (seed % 7) * 0.4,
       };
     });
 
     return posMap;
   }, [nodes]);
 
-  // Generate 60 ambient background stars
+  // Ambient stars in background
   const backgroundStars = useMemo(() => {
-    return Array.from({ length: 65 }).map((_, i) => ({
+    return Array.from({ length: 85 }).map((_, i) => ({
       id: i,
       x: (i * 37) % 99,
-      y: (i * 73) % 97,
-      size: (i % 3 === 0 ? 3 : i % 2 === 0 ? 2 : 1),
-      opacity: 0.2 + ((i * 13) % 80) / 100,
-      blinkDuration: 2 + (i % 4) * 1.2,
-      delay: (i % 5) * 0.6,
+      y: (i * 73) % 98,
+      size: i % 4 === 0 ? 2.5 : i % 2 === 0 ? 1.8 : 1,
+      opacity: 0.15 + ((i * 17) % 75) / 100,
+      blinkDuration: 2.5 + (i % 4) * 1.2,
+      delay: (i % 6) * 0.5,
     }));
   }, []);
 
@@ -127,41 +158,41 @@ export default function FloatingBlobsCanvas({
     switch (node.category) {
       case "skills":
         return {
-          gradient: "from-emerald-400/35 via-teal-600/25 to-cyan-950/60",
-          border: "rgba(52, 211, 153, 0.45)",
-          glow: "rgba(16, 185, 129, 0.55)",
+          gradient: "from-emerald-400/35 via-teal-600/25 to-cyan-950/65",
+          border: "rgba(52, 211, 153, 0.4)",
+          glow: "rgba(16, 185, 129, 0.5)",
           text: "#a7f3d0",
           core: "#34d399",
         };
       case "projects":
         return {
-          gradient: "from-cyan-400/35 via-blue-600/25 to-indigo-950/60",
-          border: "rgba(56, 189, 248, 0.45)",
-          glow: "rgba(6, 182, 212, 0.55)",
+          gradient: "from-cyan-400/35 via-blue-600/25 to-indigo-950/65",
+          border: "rgba(56, 189, 248, 0.4)",
+          glow: "rgba(6, 182, 212, 0.5)",
           text: "#bae6fd",
           core: "#38bdf8",
         };
       case "experience":
         return {
-          gradient: "from-amber-400/35 via-orange-600/25 to-rose-950/60",
-          border: "rgba(251, 191, 36, 0.45)",
-          glow: "rgba(245, 158, 11, 0.55)",
+          gradient: "from-amber-400/35 via-orange-600/25 to-rose-950/65",
+          border: "rgba(251, 191, 36, 0.4)",
+          glow: "rgba(245, 158, 11, 0.5)",
           text: "#fde68a",
           core: "#fbbf24",
         };
       case "domains":
       default:
         return {
-          gradient: "from-fuchsia-400/40 via-purple-600/30 to-indigo-950/65",
-          border: "rgba(232, 121, 249, 0.5)",
-          glow: "rgba(217, 70, 239, 0.6)",
+          gradient: "from-fuchsia-400/40 via-purple-600/30 to-indigo-950/70",
+          border: "rgba(232, 121, 249, 0.45)",
+          glow: "rgba(217, 70, 239, 0.55)",
           text: "#f5d0fe",
           core: "#e879f9",
         };
     }
   };
 
-  // Find connections between nodes for faint glowing constellation lines
+  // Constellation lines connecting related skills
   const constellationLines = useMemo(() => {
     const lines: { x1: number; y1: number; x2: number; y2: number; color: string; id: string }[] = [];
     nodes.forEach((node) => {
@@ -197,18 +228,18 @@ export default function FloatingBlobsCanvas({
   }, [nodes, hoveredNodeId]);
 
   return (
-    <div className="relative w-full h-full min-h-[640px] rounded-3xl overflow-hidden bg-[#05060d] border border-white/10 shadow-2xl flex flex-col justify-between select-none">
-      {/* Deep Space Background Ambient Glows */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#0c122a] via-[#05060d] to-[#020307] pointer-events-none" />
+    <div className="relative w-full h-full min-h-screen overflow-hidden bg-[#030611] select-none">
+      {/* Deep Space Background Glows */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0b132e] via-[#040817] to-[#02040a] pointer-events-none" />
 
-      {/* Atmospheric Nebulae */}
+      {/* Atmospheric Space Nebulae */}
       <div
-        className="absolute top-1/4 left-1/5 w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 pointer-events-none"
+        className="absolute top-1/4 left-1/4 w-[650px] h-[650px] rounded-full blur-[140px] opacity-20 pointer-events-none"
         style={{ background: selectedModel.colors.primary }}
       />
-      <div className="absolute bottom-1/4 right-1/5 w-[450px] h-[450px] rounded-full blur-[140px] opacity-15 bg-cyan-500 pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] rounded-full blur-[160px] opacity-15 bg-cyan-500 pointer-events-none" />
 
-      {/* Starfield Layer (Twinkling ambient dots) */}
+      {/* Starfield Layer (Twinkling background stars) */}
       <div className="absolute inset-0 pointer-events-none">
         {backgroundStars.map((star) => (
           <motion.div
@@ -226,13 +257,13 @@ export default function FloatingBlobsCanvas({
               top: `${star.y}%`,
               width: `${star.size}px`,
               height: `${star.size}px`,
-              boxShadow: star.size > 1 ? "0 0 6px rgba(255,255,255,0.8)" : "none",
+              boxShadow: star.size > 1 ? "0 0 5px rgba(255,255,255,0.7)" : "none",
             }}
           />
         ))}
       </div>
 
-      {/* Subtle Constellation Connection Lines */}
+      {/* Constellation Connection Lines */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
         {constellationLines.map((line) => (
           <line
@@ -244,38 +275,27 @@ export default function FloatingBlobsCanvas({
             stroke={line.color}
             strokeWidth="1"
             strokeDasharray="4 4"
-            opacity="0.18"
+            opacity="0.16"
           />
         ))}
       </svg>
 
-      {/* Floating Starry Control Pill (Minimalist, unobtrusive) */}
-      <div className="absolute top-4 left-5 right-5 z-20 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-2 pointer-events-auto bg-black/60 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/10 shadow-lg">
-          <Sparkles className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
-          <span className="text-xs font-bold text-white tracking-wide">
-            {nodes.length} Star Blobs
-          </span>
-          <span className="text-[10px] text-zinc-400 border-l border-white/10 pl-2">
-            Click any star to enlarge
-          </span>
-        </div>
-
-        {/* Search bar floating lightly */}
-        <div className="relative pointer-events-auto w-48 sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+      {/* Minimalist Floating Search in Corner */}
+      <div className="absolute top-5 right-6 z-30 w-52 sm:w-64">
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
           <input
             type="text"
             placeholder="Search star cosmos..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded-full text-xs bg-black/60 backdrop-blur-xl border border-white/10 text-white placeholder:text-zinc-500 focus:outline-none focus:border-cyan-500/50 shadow-lg transition-all"
+            className="w-full pl-9 pr-3.5 py-2 rounded-full text-xs bg-black/60 backdrop-blur-xl border border-white/15 text-white placeholder:text-zinc-500 focus:outline-none focus:border-cyan-400 shadow-xl transition-all"
           />
         </div>
       </div>
 
-      {/* Scattered Organic Floating Blobs Stage */}
-      <div className="relative w-full h-full flex-1 z-10 overflow-hidden">
+      {/* Scattered Organic Blobs - Fixed coordinates with smooth breathing/shine only */}
+      <div className="absolute inset-0 w-full h-full z-10">
         {nodes.map((node) => {
           const pos = nodePositions[node.id];
           if (!pos) return null;
@@ -291,59 +311,55 @@ export default function FloatingBlobsCanvas({
           return (
             <motion.div
               key={node.id}
-              drag
-              dragConstraints={{ left: -40, right: 40, top: -40, bottom: 40 }}
-              dragElastic={0.15}
               animate={{
-                x: [0, pos.driftX, -pos.driftX * 0.6, 0],
-                y: [0, pos.driftY, -pos.driftY * 0.8, 0],
-                borderRadius: [pos.shape1, pos.shape2, pos.shape1],
+                boxShadow: [
+                  `0 0 18px 2px ${palette.glow}, inset 0 0 8px rgba(255,255,255,0.15)`,
+                  `0 0 38px 8px ${palette.glow}, inset 0 0 16px rgba(255,255,255,0.3)`,
+                  `0 0 18px 2px ${palette.glow}, inset 0 0 8px rgba(255,255,255,0.15)`,
+                ],
+                opacity: isHighlighted ? [0.88, 1, 0.88] : 0.2,
               }}
               transition={{
-                duration: pos.floatDuration,
+                duration: pos.shineDuration,
                 repeat: Infinity,
-                delay: pos.floatDelay,
+                delay: pos.shineDelay,
                 ease: "easeInOut",
               }}
-              whileHover={{ scale: 1.22, zIndex: 40 }}
-              whileTap={{ scale: 0.94 }}
+              whileHover={{ scale: 1.25, zIndex: 45 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => onSelectNode(node)}
               onMouseEnter={() => setHoveredNodeId(node.id)}
               onMouseLeave={() => setHoveredNodeId(null)}
-              className={`absolute cursor-pointer flex flex-col items-center justify-center transition-opacity duration-300 ${
-                isHighlighted ? "opacity-100" : "opacity-25"
-              }`}
+              className="absolute cursor-pointer flex flex-col items-center justify-center select-none"
               style={{
                 left: `${pos.x}%`,
                 top: `${pos.y}%`,
                 width: `${pos.size}px`,
                 height: `${pos.size}px`,
                 transform: "translate(-50%, -50%)",
-                background: `radial-gradient(circle at 35% 35%, rgba(255,255,255,0.22) 0%, transparent 60%), linear-gradient(135deg, ${palette.gradient})`,
+                borderRadius: pos.shape,
+                background: `radial-gradient(circle at 35% 35%, rgba(255,255,255,0.2) 0%, transparent 60%), linear-gradient(135deg, ${palette.gradient})`,
                 border: `1.5px solid ${palette.border}`,
-                boxShadow: isHovered
-                  ? `0 0 45px 12px ${palette.glow}, inset 0 0 20px rgba(255,255,255,0.3)`
-                  : `0 0 25px 4px ${palette.glow}, inset 0 0 10px rgba(255,255,255,0.15)`,
-                zIndex: isHovered ? 50 : Math.floor(pos.size),
+                zIndex: isHovered ? 50 : Math.floor(pos.size / 10),
               }}
             >
-              {/* Inner ambient star core */}
+              {/* Star Core Dot */}
               <div
-                className="absolute w-2 h-2 rounded-full blur-[1px] opacity-75 top-2.5 right-3"
+                className="absolute w-2 h-2 rounded-full blur-[1px] opacity-80 top-2.5 right-3"
                 style={{ background: palette.core }}
               />
 
-              {/* Title inside blob */}
-              <span className="font-extrabold text-[11px] sm:text-xs text-white tracking-tight text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] px-2 leading-tight select-none">
+              {/* Skill / Project Title */}
+              <span className="font-extrabold text-[11px] sm:text-xs text-white tracking-tight text-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] px-2 leading-tight">
                 {node.name}
               </span>
 
-              {/* Subtle category or percentage badge for larger nodes */}
-              {pos.size >= 85 && (
+              {/* Weight Pill for Major Blobs */}
+              {pos.size >= 90 && (
                 <span
-                  className="mt-1 text-[9px] font-bold font-mono px-1.5 py-0.2 rounded-full opacity-80"
+                  className="mt-1 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full opacity-85"
                   style={{
-                    background: "rgba(0,0,0,0.4)",
+                    background: "rgba(0,0,0,0.45)",
                     color: palette.text,
                     border: `1px solid ${palette.border}`,
                   }}
@@ -363,9 +379,9 @@ export default function FloatingBlobsCanvas({
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 max-w-xl w-[90%] bg-black/80 backdrop-blur-2xl px-4 py-2.5 rounded-2xl border border-white/15 shadow-2xl flex items-center justify-between gap-4 pointer-events-none"
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 max-w-xl w-[90%] bg-black/85 backdrop-blur-2xl px-5 py-3 rounded-2xl border border-white/20 shadow-2xl flex items-center justify-between gap-4 pointer-events-none"
           >
-            <div className="flex items-center gap-2.5 truncate">
+            <div className="flex items-center gap-3 truncate">
               <span
                 className="h-2.5 w-2.5 rounded-full shrink-0 animate-pulse"
                 style={{ background: getNodePalette(activeHoveredNode).core }}
@@ -380,7 +396,7 @@ export default function FloatingBlobsCanvas({
               </div>
             </div>
             <span className="text-[10px] font-bold text-cyan-400 shrink-0 uppercase tracking-wider">
-              Click to Open &rarr;
+              Click to Enlarge &rarr;
             </span>
           </motion.div>
         )}
