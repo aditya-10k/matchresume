@@ -36,7 +36,7 @@ export default function ModelSelector({ direction = "down" }: ModelSelectorProps
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center gap-2 rounded-full border border-white/15 bg-black/75 px-3.5 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-xl hover:border-white/30 active:scale-95 transition-all"
+        className="flex items-center gap-2 rounded-full border border-zinc-200 dark:border-white/15 bg-white/80 dark:bg-black/75 px-3.5 py-1.5 text-xs font-medium text-zinc-900 dark:text-white shadow-md dark:shadow-lg backdrop-blur-xl hover:border-zinc-300 dark:hover:border-white/30 active:scale-95 transition-all"
         style={{
           boxShadow: `0 0 15px ${selectedModel.colors.primary}25`,
         }}
@@ -52,8 +52,8 @@ export default function ModelSelector({ direction = "down" }: ModelSelectorProps
 
         <span className="font-semibold tracking-tight">{selectedModel.shortName}</span>
         <ChevronDown
-          className={`h-3.5 w-3.5 text-zinc-400 transition-transform duration-200 ${
-            isOpen ? "rotate-180 text-white" : ""
+          className={`h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400 transition-transform duration-200 ${
+            isOpen ? "rotate-180 text-zinc-900 dark:text-white" : ""
           }`}
         />
       </button>
@@ -66,12 +66,12 @@ export default function ModelSelector({ direction = "down" }: ModelSelectorProps
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: direction === "up" ? 8 : -8, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className={`absolute z-[100] w-72 sm:w-80 overflow-hidden rounded-3xl border border-white/20 bg-zinc-950/95 p-2 shadow-2xl backdrop-blur-3xl ${positionClasses}`}
+            className={`absolute z-[100] w-72 sm:w-80 overflow-hidden rounded-3xl border border-zinc-200 dark:border-white/20 bg-white/95 dark:bg-zinc-950/95 p-2 shadow-2xl backdrop-blur-3xl ${positionClasses}`}
             style={{
-              boxShadow: `0 25px 60px rgba(0,0,0,0.95), 0 0 35px ${selectedModel.colors.primary}25`,
+              boxShadow: `0 25px 60px rgba(0,0,0,0.15), 0 0 35px ${selectedModel.colors.primary}25`,
             }}
           >
-            <div className="px-3.5 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-400 border-b border-white/10 flex items-center justify-between">
+            <div className="px-3.5 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between">
               <span>Switch Intelligence Model</span>
               <span
                 className="h-1.5 w-1.5 rounded-full"
@@ -92,8 +92,8 @@ export default function ModelSelector({ direction = "down" }: ModelSelectorProps
                     }}
                     className={`group flex items-start gap-3 rounded-2xl p-2.5 text-left transition-all ${
                       isSelected
-                        ? "bg-white/10 border border-white/20"
-                        : "hover:bg-white/5 border border-transparent"
+                        ? "bg-zinc-100 dark:bg-white/10 border border-zinc-200 dark:border-white/20"
+                        : "hover:bg-zinc-100/70 dark:hover:bg-white/5 border border-transparent"
                     }`}
                   >
                     {/* Glowing Model Indicator */}
@@ -115,7 +115,7 @@ export default function ModelSelector({ direction = "down" }: ModelSelectorProps
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-semibold text-white truncate">
+                        <span className="text-xs font-semibold text-zinc-900 dark:text-white truncate">
                           {model.name}
                         </span>
                         <span
@@ -129,7 +129,7 @@ export default function ModelSelector({ direction = "down" }: ModelSelectorProps
                           {model.provider}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-[11px] text-zinc-400 line-clamp-1">
+                      <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-1">
                         {model.tagline}
                       </p>
                     </div>

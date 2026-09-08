@@ -52,7 +52,7 @@ export default function MatchGauge({ score, size = 160 }: MatchGaugeProps) {
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="transparent"
-          className="text-white/10"
+          className="text-zinc-200 dark:text-white/10"
         />
 
         {/* Animated colored progress stroke */}
@@ -76,7 +76,7 @@ export default function MatchGauge({ score, size = 160 }: MatchGaugeProps) {
 
       {/* Center percentage label */}
       <div className="absolute flex flex-col items-center justify-center">
-        <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+        <span className="text-3xl sm:text-4xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
           {displayScore}%
         </span>
         <span

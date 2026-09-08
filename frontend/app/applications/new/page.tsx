@@ -106,10 +106,10 @@ function NewApplicationContent() {
       />
 
       <div className="text-center mb-8">
-        <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+        <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
           Analyze Position
         </h1>
-        <p className="mt-2 text-xs sm:text-sm text-zinc-400 max-w-md mx-auto">
+        <p className="mt-2 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-md mx-auto">
           Input the target job description. Aira will extract requirements, search your vector career vault, and select the optimal resume.
         </p>
       </div>
@@ -144,37 +144,37 @@ function NewApplicationContent() {
             {/* Optional Metadata Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-zinc-300">Company Name (Optional)</label>
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Company Name (Optional)</label>
                 <input
                   type="text"
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
                   placeholder="e.g. Google, DeepMind, Stripe"
-                  className="rounded-2xl border border-white/10 bg-black/50 px-4 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none transition-all"
-                  style={{ borderColor: `${selectedModel.colors.primary}30` }}
+                  className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white/80 dark:bg-black/50 px-4 py-2.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none transition-all"
+                  style={{ borderColor: `${selectedModel.colors.primary}35` }}
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-zinc-300">Target Role (Optional)</label>
+                <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Target Role (Optional)</label>
                 <input
                   type="text"
                   value={roleTitle}
                   onChange={(e) => setRoleTitle(e.target.value)}
                   placeholder="e.g. Senior AI Engineer"
-                  className="rounded-2xl border border-white/10 bg-black/50 px-4 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none transition-all"
-                  style={{ borderColor: `${selectedModel.colors.primary}30` }}
+                  className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white/80 dark:bg-black/50 px-4 py-2.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none transition-all"
+                  style={{ borderColor: `${selectedModel.colors.primary}35` }}
                 />
               </div>
             </div>
 
             {/* Main JD Input Area */}
             <div
-              className="rounded-3xl border bg-black/50 p-6 shadow-2xl backdrop-blur-2xl transition-all"
+              className="rounded-3xl border bg-white/80 dark:bg-black/50 p-6 shadow-xl dark:shadow-2xl backdrop-blur-2xl transition-all"
               style={{ borderColor: `${selectedModel.colors.primary}25` }}
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
-                <span className="text-xs font-semibold text-zinc-200 flex items-center gap-2">
+              <div className="flex items-center justify-between border-b border-zinc-200 dark:border-white/10 pb-3 mb-4">
+                <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
                   <FileText className="h-4 w-4" style={{ color: selectedModel.colors.primary }} />
                   Job Description Content
                 </span>
@@ -199,13 +199,13 @@ function NewApplicationContent() {
                 onChange={(e) => setJdText(e.target.value)}
                 rows={9}
                 placeholder="Paste the raw job description requirements, responsibilities, and qualifications here..."
-                className="w-full bg-transparent text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none leading-relaxed resize-y"
+                className="w-full bg-transparent text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none leading-relaxed resize-y"
               />
 
               {/* Or PDF dropzone */}
-              <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-xs text-zinc-400">
-                  <UploadCloud className="h-4 w-4 text-zinc-500" />
+              <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                  <UploadCloud className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
                   <span>Or upload as PDF:</span>
                   {uploadedPdf && (
                     <span
@@ -220,7 +220,7 @@ function NewApplicationContent() {
                   )}
                 </div>
 
-                <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/10 transition-colors">
+                <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-white/10 bg-black/5 dark:bg-white/5 px-3 py-1.5 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
                   <span>Browse PDF</span>
                   <input
                     type="file"
@@ -234,7 +234,7 @@ function NewApplicationContent() {
 
             {/* Agent Mode Toggle */}
             <div
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border bg-black/40 p-5 shadow-xl backdrop-blur-xl transition-all"
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border bg-white/80 dark:bg-black/40 p-5 shadow-lg dark:shadow-xl backdrop-blur-xl transition-all"
               style={{ borderColor: `${selectedModel.colors.primary}20` }}
             >
               <div className="flex items-start gap-3">
@@ -250,7 +250,7 @@ function NewApplicationContent() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-semibold text-white">
+                    <h3 className="text-xs font-semibold text-zinc-900 dark:text-white">
                       {agentEnabled ? "Agent Mode (Autonomous Orchestration)" : "Baseline Mode (Deterministic RAG)"}
                     </h3>
                     <span
@@ -263,7 +263,7 @@ function NewApplicationContent() {
                       {agentEnabled ? "Agent ON" : "Agent OFF"}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-[11px] text-zinc-400 max-w-lg">
+                  <p className="mt-0.5 text-[11px] text-zinc-600 dark:text-zinc-400 max-w-lg">
                     {agentEnabled
                       ? "Orchestrates multi-agent reasoning: JD Analyzer parses requirements, RAG retrieves targeted evidence, Selector scores fit and missing gaps."
                       : "Direct keyword and embedding extraction without iterative multi-agent reflection."}
@@ -276,7 +276,7 @@ function NewApplicationContent() {
                 type="button"
                 onClick={() => setAgentEnabled((prev) => !prev)}
                 className={`relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  agentEnabled ? "bg-white/20" : "bg-zinc-800"
+                  agentEnabled ? "bg-orange-500/80 dark:bg-white/20" : "bg-zinc-300 dark:bg-zinc-800"
                 }`}
                 style={agentEnabled ? { backgroundColor: selectedModel.colors.primary } : {}}
               >

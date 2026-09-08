@@ -59,13 +59,13 @@ export default function ResumesPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-orange-500/15 pb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2.5">
             Career Vault
-            <span className="rounded-full bg-orange-500/15 px-2.5 py-0.5 text-xs font-semibold text-orange-400 border border-orange-500/25">
+            <span className="rounded-full bg-orange-500/15 px-2.5 py-0.5 text-xs font-semibold text-orange-600 dark:text-orange-400 border border-orange-500/25">
               {resumes.length} Ingested
             </span>
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-orange-200/60">
+          <p className="mt-1 text-xs sm:text-sm text-zinc-600 dark:text-orange-200/60">
             Factual career knowledge base. Store targeted resumes (AI, Backend, Data, General) for semantic RAG retrieval.
           </p>
         </div>
@@ -73,7 +73,7 @@ export default function ResumesPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={loadResumes}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-orange-500/20 bg-black/40 text-orange-300 hover:bg-orange-500/15 transition-colors"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-orange-500/20 bg-white/80 dark:bg-black/40 text-orange-600 dark:text-orange-300 hover:bg-orange-500/15 transition-colors"
             title="Refresh list"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -105,13 +105,13 @@ export default function ResumesPage() {
       {/* Search Bar */}
       <div className="mt-8 flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-orange-400/50" />
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-orange-500/50 dark:text-orange-400/50" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by label or filename..."
-            className="w-full rounded-full border border-orange-500/20 bg-black/40 pl-10 pr-4 py-2 text-xs text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
+            className="w-full rounded-full border border-orange-500/20 bg-white/80 dark:bg-black/40 pl-10 pr-4 py-2 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
           />
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function ResumesPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-48 rounded-3xl border border-orange-500/15 bg-black/40 p-5 animate-pulse flex flex-col justify-between"
+                className="h-48 rounded-3xl border border-orange-500/15 bg-white/60 dark:bg-black/40 p-5 animate-pulse flex flex-col justify-between"
               >
                 <div className="flex gap-3">
                   <div className="h-10 w-10 rounded-2xl bg-orange-500/10" />
@@ -156,13 +156,13 @@ export default function ResumesPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center rounded-3xl border border-orange-500/15 bg-black/30 p-12 text-center backdrop-blur-xl"
+            className="flex flex-col items-center justify-center rounded-3xl border border-orange-500/15 bg-white/60 dark:bg-black/30 p-12 text-center backdrop-blur-xl"
           >
-            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-500/20 via-orange-600/15 to-transparent border border-orange-500/30 text-orange-400 shadow-inner">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-amber-500/20 via-orange-600/15 to-transparent border border-orange-500/30 text-orange-500 dark:text-orange-400 shadow-inner">
               <Database className="h-8 w-8" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-white">Your Career Vault is empty</h3>
-            <p className="mt-1 text-xs text-orange-200/60 max-w-sm">
+            <h3 className="mt-4 text-base font-semibold text-zinc-900 dark:text-white">Your Career Vault is empty</h3>
+            <p className="mt-1 text-xs text-zinc-600 dark:text-orange-200/60 max-w-sm">
               Upload existing PDF resumes (e.g. AI, Backend, General). They will be extracted, chunked, and indexed into ChromaDB for factual RAG retrieval.
             </p>
             <button

@@ -91,7 +91,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white max-w-2xl"
+          className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-white max-w-2xl"
         >
           What are we <br className="hidden sm:inline" />
           <span
@@ -105,7 +105,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="mt-3 text-xs sm:text-sm text-zinc-400 max-w-lg"
+          className="mt-3 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-lg"
         >
           Semantic career matching powered by RAG and autonomous agents. Pure verifiable experience in canonical LaTeX.
         </motion.p>
@@ -121,9 +121,9 @@ export default function DashboardPage() {
             transition={{ delay: 0.3 + idx * 0.1 }}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
             onClick={() => handleStartMatch(card.prompt)}
-            className="group cursor-pointer rounded-3xl bg-black/40 p-5 shadow-xl backdrop-blur-xl transition-all flex flex-col justify-between"
+            className="group cursor-pointer rounded-3xl bg-white/80 dark:bg-black/40 p-5 shadow-lg dark:shadow-xl backdrop-blur-xl transition-all flex flex-col justify-between hover:shadow-xl dark:hover:shadow-2xl"
             style={{
-              border: `1px solid ${selectedModel.colors.primary}20`,
+              border: `1px solid ${selectedModel.colors.primary}25`,
             }}
           >
             <div>
@@ -137,10 +137,10 @@ export default function DashboardPage() {
               >
                 <Sparkles className="h-4 w-4" />
               </div>
-              <h3 className="mt-4 text-sm font-semibold text-white tracking-tight group-hover:text-zinc-200 transition-colors">
+              <h3 className="mt-4 text-sm font-semibold text-zinc-900 dark:text-white tracking-tight group-hover:text-zinc-700 dark:group-hover:text-zinc-200 transition-colors">
                 {card.title}
               </h3>
-              <p className="mt-1 text-xs text-zinc-400 leading-relaxed">
+              <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
                 {card.subtitle}
               </p>
             </div>
@@ -163,16 +163,16 @@ export default function DashboardPage() {
         className="sticky bottom-4 z-40 mt-12 w-full"
       >
         <div
-          className="mx-auto flex max-w-3xl items-center justify-between rounded-full bg-black/80 p-2 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10 transition-all duration-500"
+          className="mx-auto flex max-w-3xl items-center justify-between rounded-full bg-white/90 dark:bg-black/80 p-2 shadow-xl dark:shadow-2xl backdrop-blur-2xl ring-1 ring-zinc-200/80 dark:ring-white/10 transition-all duration-500"
           style={{
             border: `1px solid ${selectedModel.colors.primary}35`,
-            boxShadow: `0 20px 50px rgba(0,0,0,0.85), 0 0 25px ${selectedModel.colors.primary}20`,
+            boxShadow: `0 20px 50px rgba(0,0,0,0.15), 0 0 25px ${selectedModel.colors.primary}20`,
           }}
         >
           {/* File Vault shortcut */}
           <Link
             href="/resumes"
-            className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
+            className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white transition-colors"
             title="Browse Resumes"
           >
             <FileText className="h-4 w-4" />
@@ -188,7 +188,7 @@ export default function DashboardPage() {
             onChange={(e) => setPromptInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleStartMatch()}
             placeholder="Paste job description or ask Aira to tailor..."
-            className="flex-1 bg-transparent px-4 py-2 text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:outline-none"
+            className="flex-1 bg-transparent px-4 py-2 text-xs sm:text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none"
           />
 
           {/* Glowing Circular Molten Action Button */}
@@ -208,10 +208,10 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Career Vault Drawer */}
-      <div className="mt-16 border-t border-white/10 pt-8">
+      <div className="mt-16 border-t border-zinc-200 dark:border-white/10 pt-8">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+            <h2 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
               Career Vault
               <span
                 className="rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors duration-500"
@@ -224,7 +224,7 @@ export default function DashboardPage() {
                 {resumes.length} Ingested
               </span>
             </h2>
-            <p className="text-xs text-zinc-400">Immutable resume knowledge bases for vector retrieval.</p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">Immutable resume knowledge bases for vector retrieval.</p>
           </div>
           <Link
             href="/resumes"
@@ -240,13 +240,13 @@ export default function DashboardPage() {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-40 rounded-3xl border border-white/10 bg-black/40 animate-pulse" />
+                <div key={i} className="h-40 rounded-3xl border border-zinc-200 dark:border-white/10 bg-white/60 dark:bg-black/40 animate-pulse" />
               ))}
             </div>
           ) : resumes.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-white/15 bg-black/30 p-8 text-center">
-              <FileText className="mx-auto h-8 w-8 text-zinc-600" />
-              <p className="mt-2 text-xs text-zinc-400">No resumes stored in your vector vault yet.</p>
+            <div className="rounded-3xl border border-dashed border-zinc-300 dark:border-white/15 bg-white/50 dark:bg-black/30 p-8 text-center">
+              <FileText className="mx-auto h-8 w-8 text-zinc-400 dark:text-zinc-600" />
+              <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">No resumes stored in your vector vault yet.</p>
               <Link
                 href="/resumes"
                 className="mt-4 inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-semibold text-white transition-all"

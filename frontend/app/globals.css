@@ -1,15 +1,19 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #080402;
   --foreground: #f5ede8;
   --orb-core: #ff5c00;
   --orb-glow: #ff7a1a;
   --card-glass: rgba(18, 9, 5, 0.65);
+  --card-glass-subtle: rgba(12, 6, 9, 0.5);
   --card-border: rgba(255, 92, 0, 0.18);
   --border-specular: rgba(255, 255, 255, 0.12);
   --scrollbar-thumb: rgba(255, 92, 0, 0.45);
   --scrollbar-thumb-hover: rgba(255, 92, 0, 0.8);
+  --scrollbar-track: #020204;
   --dynamic-mesh: radial-gradient(circle at 50% 15%, rgba(255, 92, 0, 0.24) 0%, rgba(180, 50, 0, 0.12) 40%, rgba(8, 4, 2, 0.98) 75%, #080402 100%);
 }
 
@@ -29,20 +33,24 @@ body {
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
-  transition: background-color 0.6s ease, background-image 0.6s ease;
+  transition: background-color 0.5s ease, background-image 0.5s ease, color 0.3s ease;
 }
 
-/* Frosted Obsidian Glassmorphism */
+/* Glassmorphism Styles */
 .glass-panel {
-  background: rgba(10, 5, 8, 0.72);
+  background: var(--card-glass);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--card-border);
   box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.75), 0 0 24px -6px var(--orb-glow);
 }
 
+.light .glass-panel {
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.06), 0 0 20px -6px var(--orb-glow);
+}
+
 .glass-panel-subtle {
-  background: rgba(12, 6, 9, 0.5);
+  background: var(--card-glass-subtle);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--card-border);
@@ -55,7 +63,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #020204;
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {

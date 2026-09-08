@@ -115,16 +115,13 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
   };
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 bg-black/45 p-7 shadow-2xl backdrop-blur-2xl">
-      {/* Subtle ambient warm glow */}
-      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-orange-600/10 blur-3xl" />
-
+    <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 bg-white/80 dark:bg-black/60 p-6 sm:p-8 backdrop-blur-2xl shadow-xl dark:shadow-2xl">
       <input
         ref={fileInputRef}
         type="file"
-        accept="application/pdf"
-        className="hidden"
+        accept=".pdf"
         onChange={handleFileChange}
+        className="hidden"
       />
 
       <AnimatePresence mode="wait">
@@ -145,17 +142,17 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
                 : "border-orange-500/20 hover:border-orange-500/45 hover:bg-orange-500/5"
             }`}
           >
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/20 via-orange-600/20 to-transparent border border-orange-500/30 text-orange-400 shadow-md group-hover:scale-110 group-hover:border-orange-400 transition-all">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/20 via-orange-600/20 to-transparent border border-orange-500/30 text-orange-500 dark:text-orange-400 shadow-md group-hover:scale-110 group-hover:border-orange-400 transition-all">
               <UploadCloud className="h-7 w-7" />
             </div>
-            <h4 className="text-base font-semibold text-white tracking-tight">
+            <h4 className="text-base font-semibold text-zinc-900 dark:text-white tracking-tight">
               Drop your resume PDF into the Vault
             </h4>
-            <p className="mt-1 text-xs text-zinc-400 max-w-sm">
+            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400 max-w-sm">
               Upload AI, Backend, Data, or General resumes. The original document remains immutable.
             </p>
-            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-orange-500/25 bg-orange-950/20 px-4 py-2 text-xs font-medium text-orange-200 shadow hover:bg-orange-500/20 transition-all">
-              <FileText className="h-3.5 w-3.5 text-orange-400" />
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-orange-500/25 bg-orange-500/10 dark:bg-orange-950/20 px-4 py-2 text-xs font-medium text-orange-700 dark:text-orange-200 shadow hover:bg-orange-500/20 transition-all">
+              <FileText className="h-3.5 w-3.5 text-orange-500 dark:text-orange-400" />
               <span>Browse File</span>
             </div>
           </motion.div>
@@ -167,30 +164,30 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="flex flex-col gap-5 rounded-2xl border border-orange-500/20 bg-black/50 p-6"
+            className="flex flex-col gap-5 rounded-2xl border border-orange-500/20 bg-zinc-50/90 dark:bg-black/50 p-6"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500/15 text-orange-400 border border-orange-500/30">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500/15 text-orange-500 dark:text-orange-400 border border-orange-500/30">
                   <FileText className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-white">{selectedFile.name}</h4>
-                  <p className="text-[11px] text-zinc-400 font-mono">
+                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">{selectedFile.name}</h4>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
                     {(selectedFile.size / 1024).toFixed(1)} KB • PDF Document
                   </p>
                 </div>
               </div>
               <button
                 onClick={reset}
-                className="text-xs text-orange-300/60 hover:text-orange-300 transition-colors"
+                className="text-xs text-orange-600/70 dark:text-orange-300/60 hover:text-orange-600 dark:hover:text-orange-300 transition-colors"
               >
                 Change
               </button>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-zinc-300">
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                 Resume Label / Specialization
               </label>
               <input
@@ -198,14 +195,14 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
                 value={resumeName}
                 onChange={(e) => setResumeName(e.target.value)}
                 placeholder="e.g. AI & ML Resume, Senior Backend Resume"
-                className="rounded-xl border border-orange-500/20 bg-black/60 px-4 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
+                className="rounded-xl border border-orange-500/20 bg-white dark:bg-black/60 px-4 py-2.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-all"
               />
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={reset}
-                className="rounded-full px-4 py-2 text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+                className="rounded-full px-4 py-2 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
               >
                 Cancel
               </button>
@@ -235,17 +232,17 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
-                  <CheckCircle2 className="h-8 w-8 text-orange-400" />
+                  <CheckCircle2 className="h-8 w-8 text-orange-500 dark:text-orange-400" />
                 </motion.div>
               ) : (
-                <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
+                <Loader2 className="h-8 w-8 animate-spin text-orange-500 dark:text-orange-400" />
               )}
             </div>
 
-            <h4 className="text-base font-semibold text-white">
+            <h4 className="text-base font-semibold text-zinc-900 dark:text-white">
               {step === "ready" ? "Indexed Into Career Vault" : "Processing Resume Knowledge"}
             </h4>
-            <p className="mt-1 text-xs text-orange-200/60 max-w-sm">
+            <p className="mt-1 text-xs text-zinc-600 dark:text-orange-200/60 max-w-sm">
               {step === "uploading" && "Uploading document to secure server..."}
               {step === "extracting" && "Extracting raw text and identifying career sections..."}
               {step === "indexing" && "Chunking text & dispatching to ChromaDB RAG store..."}
@@ -264,16 +261,16 @@ export default function UploadDropzone({ onSuccess }: UploadDropzoneProps) {
                           ? "bg-gradient-to-r from-amber-400 to-orange-500"
                           : status === "active"
                           ? "bg-orange-500 animate-pulse"
-                          : "bg-white/10"
+                          : "bg-zinc-200 dark:bg-white/10"
                       }`}
                     />
                     <span
                       className={`text-[10px] font-medium tracking-tight ${
                         status === "completed"
-                          ? "text-orange-300"
+                          ? "text-orange-600 dark:text-orange-300"
                           : status === "active"
-                          ? "text-orange-400"
-                          : "text-zinc-600"
+                          ? "text-orange-500 dark:text-orange-400"
+                          : "text-zinc-400 dark:text-zinc-600"
                       }`}
                     >
                       {stage.label}

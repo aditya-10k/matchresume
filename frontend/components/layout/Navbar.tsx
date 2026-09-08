@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Sparkles, FileText, Layers, Menu, X, Plus } from "lucide-react";
+import { Sparkles, FileText, Layers, Menu, X, Plus, Sun, Moon } from "lucide-react";
 import { checkBackendHealth } from "@/lib/api/resumes";
 import { useModel } from "@/context/ModelContext";
 import ModelSelector from "@/components/ui/ModelSelector";
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { selectedModel } = useModel();
+  const { selectedModel, colorMode, toggleColorMode } = useModel();
   const [health, setHealth] = useState<{ status: string; mock_rag: boolean } | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -25,13 +25,17 @@ export default function Navbar() {
     { href: "/resumes", label: "Resume Vault", icon: FileText },
   ];
 
+  const isLight = colorMode === "light";
+
   return (
     <header className="sticky top-0 z-50 w-full px-3 py-3 sm:px-6 sm:py-4">
       <div
-        className="mx-auto flex max-w-6xl items-center justify-between rounded-full bg-black/50 px-4 py-2.5 shadow-2xl backdrop-blur-2xl transition-all duration-500"
+        className="mx-auto flex max-w-6xl items-center justify-between rounded-full bg-white/80 dark:bg-black/50 px-4 py-2.5 shadow-xl dark:shadow-2xl backdrop-blur-2xl transition-all duration-500"
         style={{
-          border: `1px solid ${selectedModel.colors.primary}30`,
-          boxShadow: `0 16px 40px -10px rgba(0,0,0,0.8), 0 0 20px ${selectedModel.colors.primary}15`,
+          border: `1px solid ${selectedModel.colors.primary}${isLight ? "35" : "30"}`,
+          boxShadow: isLight
+            ? `0 10px 30px -5px rgba(0,0,0,0.06), 0 0 20px ${selectedModel.colors.primary}12`
+            : `0 16px 40px -10px rgba(0,0,0,0.8), 0 0 20px ${selectedModel.colors.primary}15`,
         }}
       >
         {/* Brand & Monogram */}
@@ -48,7 +52,7 @@ export default function Navbar() {
             </div>
           </div>
           <div className="flex flex-col">
-            <span className="text-xs font-semibold tracking-tight text-white flex items-center gap-1.5">
+            <span className="text-xs font-semibold tracking-tight text-zinc-900 dark:text-white flex items-center gap-1.5">
               Resume Copilot
               <span
                 className="rounded-full px-1.5 py-0.2 text-[9px] font-medium transition-colors duration-500"
@@ -61,7 +65,7 @@ export default function Navbar() {
                 {selectedModel.shortName}
               </span>
             </span>
-            <span className="text-[10px] text-zinc-400 font-medium">Welcome back</span>
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">AI Career Studio</span>
           </div>
         </Link>
 
@@ -76,15 +80,15 @@ export default function Navbar() {
                 href={link.href}
                 className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
                   isActive
-                    ? "text-white border shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+                    ? "border shadow-sm"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5"
                 }`}
                 style={
                   isActive
                     ? {
-                        background: `${selectedModel.colors.primary}20`,
+                        background: `${selectedModel.colors.primary}${isLight ? "18" : "20"}`,
                         borderColor: `${selectedModel.colors.primary}40`,
-                        color: "#fff",
+                        color: isLight ? selectedModel.colors.primary : "#fff",
                       }
                     : {}
                 }
@@ -99,8 +103,22 @@ export default function Navbar() {
           })}
         </nav>
 
-        {/* Right Action Icons, Model Selector & Status */}
-        <div className="flex items-center gap-2.5">
+        {/* Right Action Icons, Theme Mode, Model Selector & Status */}
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* Theme Mode Toggle (Sun/Moon) */}
+          <button
+            onClick={toggleColorMode}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 dark:border-white/10 bg-black/5 dark:bg-black/40 text-zinc-700 dark:text-zinc-300 hover:bg-black/10 dark:hover:bg-white/10 transition-all active:scale-95"
+            title={isLight ? "Switch to Dark Studio" : "Switch to Light Studio"}
+            aria-label="Toggle theme mode"
+          >
+            {isLight ? (
+              <Moon className="h-4 w-4 text-zinc-800" />
+            ) : (
+              <Sun className="h-4 w-4 text-amber-300" />
+            )}
+          </button>
+
           {/* Quick Model Selector in Header */}
           <div className="hidden lg:block">
             <ModelSelector />
@@ -124,7 +142,7 @@ export default function Navbar() {
                   : "bg-rose-500"
               }`}
             />
-            <span className="font-medium text-zinc-300">
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">
               {health?.status === "healthy"
                 ? health.mock_rag
                   ? "Mock RAG"
@@ -148,7 +166,7 @@ export default function Navbar() {
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileMenuOpen((p) => !p)}
-            className="md:hidden flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/40 text-zinc-300 hover:bg-white/10 transition-colors"
+            className="md:hidden flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 dark:border-white/10 bg-black/5 dark:bg-black/40 text-zinc-700 dark:text-zinc-300 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
           >
             {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
@@ -158,11 +176,11 @@ export default function Navbar() {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div
-          className="md:hidden mt-2 rounded-3xl border bg-black/90 p-4 shadow-2xl backdrop-blur-2xl"
+          className="md:hidden mt-2 rounded-3xl border bg-white/95 dark:bg-black/90 p-4 shadow-2xl backdrop-blur-2xl transition-all"
           style={{ borderColor: `${selectedModel.colors.primary}30` }}
         >
-          <div className="mb-3 border-b border-white/10 pb-3">
-            <div className="text-[11px] font-semibold text-zinc-400 mb-2">Switch Model:</div>
+          <div className="mb-3 border-b border-zinc-200 dark:border-white/10 pb-3 flex items-center justify-between">
+            <div className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">Switch Model:</div>
             <ModelSelector />
           </div>
           <div className="flex flex-col gap-2">
@@ -176,14 +194,15 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 text-xs font-medium transition-all ${
                     isActive
-                      ? "text-white border"
-                      : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+                      ? "border"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5"
                   }`}
                   style={
                     isActive
                       ? {
                           background: `${selectedModel.colors.primary}20`,
                           borderColor: `${selectedModel.colors.primary}40`,
+                          color: isLight ? selectedModel.colors.primary : "#fff",
                         }
                       : {}
                   }
