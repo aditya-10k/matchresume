@@ -169,36 +169,6 @@ export default function IntelligenceOrb({
               background: `radial-gradient(ellipse, ${selectedModel.colors.accent} 0%, transparent 80%)`,
             }}
           />
-
-          {/* Center Voice/Frequency Indicator Icon when Listening */}
-          <AnimatePresence>
-            {isListening && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none"
-              >
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 shadow-lg">
-                  {[0.4, 0.8, 1, 0.7, 0.3].map((height, i) => (
-                    <motion.span
-                      key={i}
-                      animate={{
-                        scaleY: [height, 1.6, height],
-                      }}
-                      transition={{
-                        duration: 0.6 + i * 0.1,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                      className="w-1 bg-white rounded-full"
-                      style={{ height: "14px", originY: 0.5 }}
-                    />
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
       </div>
 
