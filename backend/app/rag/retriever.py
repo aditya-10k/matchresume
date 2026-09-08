@@ -36,11 +36,18 @@ def compute_bm25_similarity(query_tokens: List[str], doc_tokens: List[str], doc_
     return min(1.0, score / max(1.0, len(query_set) * 1.8))
 
 
+import logging
+from app.rag.embeddings import get_embedding_service
+from app.rag.vector_store import get_vector_store
+
+logger = logging.getLogger("retriever")
+
+
 class ResumeRetriever(BaseRetriever):
     """
-    Real in-memory semantic retriever operating over candidate resume chunks.
-    Performs section-aware filtering and BM25 token matching directly against
-    the user's verified uploaded resumes. Zero hardcoded mock data.
+    Hybrid Semantic Retriever operating over candidate resume chunks.
+    Uses dense vector similarity (384-d cosine) via ChromaDB with section-aware boosting,
+    and falls back to BM25 token matching for zero-shot keywords.
     """
 
     def retrieve(
@@ -53,13 +60,59 @@ class ResumeRetriever(BaseRetriever):
         if not query or not query.strip():
             return []
 
+        # 1. Attempt Dense Vector Retrieval via ChromaDB
+        try:
+            store = get_vector_store()
+            if store.collection.count() > 0:
+                embed_service = get_embedding_service()
+                q_vec = embed_service.embed_query(query)
+
+                filters = {}
+                if resume_id:
+                    filters["resume_id"] = resume_id
+                if section:
+                    filters["section"] = section
+
+                raw_results = store.query(query_embedding=q_vec, top_k=top_k * 2, filters=filters)
+                if raw_results:
+                    scored = []
+                    for item in raw_results:
+                        sim = float(item.get("similarity", 0.5))
+                        sec = str(item.get("section", "")).lower()
+                        # Section relevance weighting
+                        if sec in ["experience", "projects", "skills"]:
+                            sim = min(1.0, sim * 1.15)
+                        scored.append((item, sim))
+
+                    scored.sort(key=lambda x: x[1], reverse=True)
+
+                    results: List[EvidenceChunk] = []
+                    seen_texts = set()
+                    for item, sim in scored[:top_k]:
+                        clean_txt = item["content"].strip()
+                        if clean_txt in seen_texts:
+                            continue
+                        seen_texts.add(clean_txt)
+                        results.append(EvidenceChunk(
+                            content=clean_txt,
+                            resume_id=item.get("resume_id", resume_id or "unknown"),
+                            section=item.get("section", "general"),
+                            similarity=round(float(sim), 3),
+                            metadata=item.get("metadata", {})
+                        ))
+                    if results:
+                        logger.info(f"Retrieved {len(results)} vector chunks from ChromaDB for query: '{query[:40]}'")
+                        return results
+        except Exception as e:
+            logger.warning(f"Vector search failed ({e}); falling back to lexical BM25 retrieval.")
+
+        # 2. Fallback: Lexical BM25 retrieval from SQLite
         query_tokens = tokenize(query)
         if not query_tokens:
             return []
 
         db = SessionLocal()
         try:
-            # Fetch target resume(s) from database
             query_filter = db.query(Resume)
             if resume_id:
                 query_filter = query_filter.filter(Resume.id == resume_id)
@@ -70,12 +123,11 @@ class ResumeRetriever(BaseRetriever):
         if not resumes:
             return []
 
-        # Extract real chunks from real resumes
         all_chunks = []
         for r in resumes:
             if not r.raw_text:
                 continue
-            r_meta = {"source": r.file_path or f"{r.name}.pdf", "resume_name": r.name}
+            r_meta = {"source": r.file_path or f"{r.name}.pdf", "resume_name": r.name, "resume_id": r.id}
             chunks = chunk_resume(r.raw_text, resume_id=r.id, metadata=r_meta)
             for c in chunks:
                 if section and c.section.lower() != section.lower():
@@ -85,21 +137,17 @@ class ResumeRetriever(BaseRetriever):
         if not all_chunks:
             return []
 
-        # Compute average document length
         all_doc_tokens = [tokenize(c.content) for c in all_chunks]
         avg_len = sum(len(dt) for dt in all_doc_tokens) / max(1, len(all_doc_tokens))
 
         scored_chunks = []
         for c, dt in zip(all_chunks, all_doc_tokens):
             sim = compute_bm25_similarity(query_tokens, dt, len(dt), avg_len)
-            # Add section relevance bias (experience & projects carry high evidence value)
             if c.section in ["experience", "projects", "skills"]:
                 sim = min(1.0, sim * 1.15)
-            
             if sim > 0.05 or len(scored_chunks) < top_k:
                 scored_chunks.append((c, sim))
 
-        # Sort by similarity descending
         scored_chunks.sort(key=lambda x: x[1], reverse=True)
 
         results: List[EvidenceChunk] = []
@@ -128,7 +176,7 @@ def retrieve_context(
 ) -> List[EvidenceChunk]:
     """
     Canonical retrieval entrypoint.
-    Returns verified, grounded evidence chunks from real candidate resumes.
+    Returns verified, grounded evidence chunks from ChromaDB or BM25 fallback.
     """
     retriever = ResumeRetriever()
     return retriever.retrieve(query=query, resume_id=resume_id, section=section, top_k=top_k)

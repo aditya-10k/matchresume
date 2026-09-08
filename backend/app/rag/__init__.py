@@ -1,21 +1,94 @@
+import logging
 from typing import List, Optional, Dict, Any
 from app.schemas.rag import EvidenceChunk, IngestionResult
 from app.rag.chunking import chunk_resume
+from app.rag.embeddings import get_embedding_service
+from app.rag.vector_store import get_vector_store
 from app.rag.retriever import retrieve_context as real_retrieve_context
+
+logger = logging.getLogger("rag")
 
 
 def ingest_resume(text: str, resume_id: str, metadata: Optional[Dict[str, Any]] = None) -> IngestionResult:
     """
     High-level ingestion pipeline hook.
-    Performs section-aware semantic chunking and indexing for candidate resumes.
+    Performs section-aware semantic chunking, dense vector embedding generation,
+    and indexing into persistent ChromaDB.
     """
-    chunks = chunk_resume(text, resume_id, metadata)
+    if not text or not text.strip():
+        return IngestionResult(
+            resume_id=resume_id,
+            total_chunks=0,
+            status="failed",
+            message="No text content to ingest"
+        )
+
+    meta = metadata or {}
+    meta["resume_id"] = resume_id
+
+    # 1. Chunk resume into section-aware semantic blocks
+    chunks = chunk_resume(text, resume_id, meta)
+    if not chunks:
+        return IngestionResult(
+            resume_id=resume_id,
+            total_chunks=0,
+            status="success",
+            message="No valid chunks extracted"
+        )
+
+    # 2. Compute dense vector embeddings
+    embed_service = get_embedding_service()
+    texts_to_embed = [c.content for c in chunks]
+    embeddings = embed_service.embed_texts(texts_to_embed)
+
+    # 3. Upsert into persistent ChromaDB vector store
+    store = get_vector_store()
+    store.add_chunks(chunks, embeddings)
+
+    logger.info(f"Successfully ingested resume {resume_id} ({len(chunks)} chunks) into ChromaDB.")
     return IngestionResult(
         resume_id=resume_id,
         total_chunks=len(chunks),
         status="success",
-        message=f"Resume successfully indexed with {len(chunks)} semantic chunks"
+        message=f"Resume successfully indexed with {len(chunks)} semantic chunks into ChromaDB"
     )
+
+
+def backfill_existing_resumes() -> int:
+    """
+    Checks all candidate resumes in SQLite.
+    If a resume is not yet indexed in ChromaDB, chunks and indexes it.
+    Ensures existing databases automatically benefit from vector RAG.
+    """
+    from app.db.session import SessionLocal
+    from app.db.models import Resume
+
+    db = SessionLocal()
+    store = get_vector_store()
+    backfilled_count = 0
+    try:
+        resumes = db.query(Resume).all()
+        for r in resumes:
+            if not r.raw_text:
+                continue
+            existing = store.get_user_chunks(resume_id=r.id)
+            if not existing:
+                logger.info(f"Backfilling vector indexing for resume: {r.name} ({r.id})...")
+                meta = {
+                    "source": r.filename or f"{r.name}.pdf",
+                    "name": r.name,
+                    "user_id": r.user_id or "",
+                    "resume_id": r.id
+                }
+                ingest_resume(r.raw_text, r.id, metadata=meta)
+                backfilled_count += 1
+            else:
+                logger.debug(f"Resume {r.id} already has {len(existing)} indexed chunks in ChromaDB.")
+    except Exception as e:
+        logger.error(f"Error during resume backfill: {e}")
+    finally:
+        db.close()
+    return backfilled_count
 
 
 def retrieve_context(
