@@ -20,6 +20,7 @@ import { useModel } from "@/context/ModelContext";
 import { getApplication, analyzeApplication } from "@/lib/api/applications";
 import { Application, ApplicationAnalysis, EvidenceChunk } from "@/lib/types";
 import MatchGauge from "@/components/applications/MatchGauge";
+import FitAnalysisSkeleton from "@/components/skeletons/FitAnalysisSkeleton";
 
 export default function ApplicationDetailPage({
   params,
@@ -58,16 +59,7 @@ export default function ApplicationDetailPage({
   }, [applicationId]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center p-8">
-        <div
-          className="h-12 w-12 rounded-full border-2 border-t-transparent animate-spin mb-4"
-          style={{ borderColor: `${selectedModel.colors.primary} transparent transparent transparent` }}
-        />
-        <h3 className="text-sm font-semibold text-white">Loading Position Fit Analysis...</h3>
-        <p className="text-xs text-zinc-400 mt-1">Evaluating candidate resumes against requirements.</p>
-      </div>
-    );
+    return <FitAnalysisSkeleton />;
   }
 
   if (error || !application || !analysis) {

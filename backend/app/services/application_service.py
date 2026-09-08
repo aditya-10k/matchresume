@@ -99,9 +99,12 @@ class ApplicationService:
         application_id: str,
         groq_api_key: Optional[str] = None,
         user_id: Optional[str] = None,
-        groq_model: Optional[str] = None
+        groq_model: Optional[str] = None,
+        preset_id: Optional[str] = "classic_tech",
+        custom_template: Optional[str] = None,
+        output_format: Optional[str] = "latex",
     ) -> Dict[str, Any]:
-        """Runs the ResumeWriter and Validator agent pipeline to tailor resume LaTeX."""
+        """Runs the ResumeWriter and Validator agent pipeline to tailor resume LaTeX or Plaintext."""
         application = self.get_application(db, application_id, user_id=user_id)
         if not application:
             raise ValueError(f"Application {application_id} not found")
@@ -118,7 +121,7 @@ class ApplicationService:
 
         evidence_chunks = []
         for term in requirements.required_skills[:4]:
-            chunks = retrieve_context(query=term, top_k=2)
+            chunks = retrieve_context(query=term, resume_id=selected_resume.id, top_k=2)
             evidence_chunks.extend(chunks)
 
         # Load user preferences (memory)
@@ -133,7 +136,10 @@ class ApplicationService:
             evidence_chunks=evidence_chunks,
             groq_api_key=groq_api_key,
             user_preferences=pref_strings,
-            groq_model=groq_model
+            groq_model=groq_model,
+            preset_id=preset_id,
+            custom_template=custom_template,
+            output_format=output_format,
         )
 
         gen_resume = GeneratedResume(

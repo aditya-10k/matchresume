@@ -220,7 +220,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
 
             {/* Mobile Footer */}
             <div className="border-t border-zinc-200 dark:border-white/10 pt-4 flex items-center justify-between text-xs text-zinc-500">
-              <span className="font-mono">RAG: {health?.status === "healthy" ? (health.mock_rag ? "Mock RAG" : "ChromaDB") : "Offline"}</span>
+              <span className="font-mono">RAG: {health?.status === "healthy" ? "Active" : "Offline"}</span>
               <button
                 onClick={toggleColorMode}
                 className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-white/10 px-3 py-1 text-xs"
@@ -514,15 +514,11 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
               <div className="flex items-center gap-2">
                 <span
                   className={`h-2 w-2 rounded-full ${
-                    health?.status === "healthy"
-                      ? health.mock_rag
-                        ? "bg-amber-400 animate-pulse"
-                        : "bg-emerald-400"
-                      : "bg-rose-500"
+                    health?.status === "healthy" ? "bg-emerald-400" : "bg-rose-500"
                   }`}
                 />
                 <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                  {health?.status === "healthy" ? (health.mock_rag ? "Mock RAG" : "ChromaDB") : "Offline"}
+                  {health?.status === "healthy" ? "RAG: Active" : "RAG: Offline"}
                 </span>
               </div>
               <Activity className="h-3 w-3 opacity-60" />

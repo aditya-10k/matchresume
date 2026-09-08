@@ -166,9 +166,9 @@ export default function ApplicationsPage() {
         /* Applications grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((app) => {
-            const score = app.match_score;
+            const score = typeof app.match_score === "number" && !isNaN(app.match_score) ? (app.match_score as number) : null;
             const scoreColor =
-              score !== undefined
+              score !== null
                 ? score >= 80
                   ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
                   : score >= 60
@@ -193,15 +193,15 @@ export default function ApplicationsPage() {
                       </span>
                     </div>
 
-                    {score !== undefined ? (
+                    {score !== null ? (
                       <span
                         className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-extrabold ${scoreColor}`}
                       >
                         {score}% Match
                       </span>
                     ) : (
-                      <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium text-zinc-400 bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-white/10">
-                        New
+                      <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 border-zinc-200 dark:border-white/10">
+                        Pending Analysis
                       </span>
                     )}
                   </div>

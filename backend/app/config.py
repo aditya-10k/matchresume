@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     ENCRYPTION_KEY: str = "yR7gU_0wz3D5P9L6F2M8A4Q1J5X8T7K2N4V0Z3C6E9A="
 
     # RAG Settings
-    USE_MOCK_RAG: bool = True
+    USE_MOCK_RAG: bool = False
     CHROMA_PERSIST_DIR: str = "./chroma_data"
 
     model_config = SettingsConfigDict(

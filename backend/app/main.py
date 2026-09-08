@@ -41,6 +41,7 @@ def health_check():
     return {
         "status": "healthy",
         "app_name": settings.APP_NAME,
+        "rag": "active",
         "mock_rag": settings.USE_MOCK_RAG
     }
 

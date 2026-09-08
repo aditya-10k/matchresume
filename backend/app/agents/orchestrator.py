@@ -180,9 +180,12 @@ class AnalysisOrchestrator:
         groq_api_key: Optional[str] = None,
         user_preferences: Optional[List[str]] = None,
         groq_model: Optional[str] = None,
+        preset_id: Optional[str] = "classic_tech",
+        custom_template: Optional[str] = None,
+        output_format: Optional[str] = "latex",
     ) -> Dict[str, Any]:
-        """Runs ResumeWriter and Validator agents to tailor and audit LaTeX resume."""
-        logger.info(f"Synthesizing tailored LaTeX for {resume.name} using model {groq_model or 'default'}...")
+        """Runs ResumeWriter and Validator agents to tailor and audit LaTeX or Plaintext resume."""
+        logger.info(f"Synthesizing tailored resume ({output_format}, preset={preset_id}) for {resume.name} using model {groq_model or 'default'}...")
         tailored = resume_writer.tailor(
             jd_requirements=requirements,
             candidate_name=resume.name,
@@ -191,9 +194,12 @@ class AnalysisOrchestrator:
             api_key=groq_api_key,
             user_preferences=user_preferences,
             model=groq_model,
+            preset_id=preset_id,
+            custom_template=custom_template,
+            output_format=output_format,
         )
 
-        logger.info("Auditing tailored LaTeX with Validator Agent...")
+        logger.info("Auditing tailored resume with Validator Agent...")
         validation = validator_agent.validate(
             latex_code=tailored.latex_code,
             source_resume_text=resume.raw_text,

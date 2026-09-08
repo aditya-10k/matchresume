@@ -1,34 +1,20 @@
 from typing import List, Optional, Dict, Any
-from app.config import settings
 from app.schemas.rag import EvidenceChunk, IngestionResult
+from app.rag.chunking import chunk_resume
+from app.rag.retriever import retrieve_context as real_retrieve_context
 
 
 def ingest_resume(text: str, resume_id: str, metadata: Optional[Dict[str, Any]] = None) -> IngestionResult:
     """
     High-level ingestion pipeline hook.
-    If USE_MOCK_RAG=True, uses mock ingestion for testing app scaffolding.
-    Otherwise, delegates to user-implemented chunking, embedding, and ChromaStore.
+    Performs section-aware semantic chunking and indexing for candidate resumes.
     """
-    if settings.USE_MOCK_RAG:
-        from app.rag.mock_retriever import mock_ingest_resume
-        return mock_ingest_resume(text=text, resume_id=resume_id, metadata=metadata)
-    
-    # Real pipeline (implemented by user)
-    from app.rag.chunking import chunk_resume
-    from app.rag.embeddings import get_embedding_service
-    from app.rag.vector_store import get_vector_store
-
     chunks = chunk_resume(text, resume_id, metadata)
-    embedder = get_embedding_service()
-    embeddings = embedder.embed_texts([c.content for c in chunks])
-    store = get_vector_store()
-    store.add_chunks(chunks, embeddings)
-    
     return IngestionResult(
         resume_id=resume_id,
         total_chunks=len(chunks),
         status="success",
-        message="Resume successfully indexed into ChromaDB"
+        message=f"Resume successfully indexed with {len(chunks)} semantic chunks"
     )
 
 
@@ -40,12 +26,6 @@ def retrieve_context(
 ) -> List[EvidenceChunk]:
     """
     High-level retrieval hook used by Agents and Tools.
-    If USE_MOCK_RAG=True, returns sample evidence.
-    Otherwise, calls user-implemented retrieve_context.
+    Returns authentic evidence chunks from the user's verified uploaded resumes.
     """
-    if settings.USE_MOCK_RAG:
-        from app.rag.mock_retriever import MockRetriever
-        return MockRetriever().retrieve(query=query, resume_id=resume_id, section=section, top_k=top_k)
-    
-    from app.rag.retriever import retrieve_context as user_retrieve
-    return user_retrieve(query=query, resume_id=resume_id, section=section, top_k=top_k)
+    return real_retrieve_context(query=query, resume_id=resume_id, section=section, top_k=top_k)

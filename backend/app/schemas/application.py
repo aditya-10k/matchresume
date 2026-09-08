@@ -35,6 +35,12 @@ class AnalysisResponse(BaseModel):
     relevant_evidence: List[EvidenceChunk] = Field(default_factory=list)
 
 
+class TailorRequest(BaseModel):
+    preset_id: Optional[str] = "classic_tech"
+    custom_template: Optional[str] = None
+    output_format: Optional[str] = "latex"
+
+
 class GenerateResumeResponse(BaseModel):
     application_id: str
     latex: str

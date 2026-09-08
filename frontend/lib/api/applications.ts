@@ -90,7 +90,14 @@ export async function analyzeApplication(id: string): Promise<ApplicationAnalysi
   return res.json();
 }
 
-export async function tailorApplication(id: string): Promise<{
+export async function tailorApplication(
+  id: string,
+  options?: {
+    preset_id?: string;
+    custom_template?: string;
+    output_format?: string;
+  }
+): Promise<{
   application_id: string;
   resume_id: string;
   resume_name: string;
@@ -107,9 +114,11 @@ export async function tailorApplication(id: string): Promise<{
     feedback: string;
   };
 }> {
+  const headers = getApiHeaders({ "Content-Type": "application/json" });
   const res = await fetch(`${API_BASE}/applications/${id}/tailor`, {
     method: "POST",
-    headers: getApiHeaders(),
+    headers,
+    body: options ? JSON.stringify(options) : undefined,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

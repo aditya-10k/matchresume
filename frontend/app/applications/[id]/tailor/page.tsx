@@ -11,6 +11,10 @@ import {
   Sliders,
   AlertCircle,
   MessageSquare,
+  Layout,
+  Upload,
+  FileText,
+  FileCode,
 } from "lucide-react";
 import { useModel } from "@/context/ModelContext";
 import {
@@ -21,9 +25,13 @@ import {
 } from "@/lib/api/applications";
 import { Application } from "@/lib/types";
 import LaTeXEditor from "@/components/latex/LaTeXEditor";
-import LaTeXPreview from "@/components/latex/LaTeXPreview";
+import LaTeXPreview, { OutputMode } from "@/components/latex/LaTeXPreview";
 import ChatRefinementDrawer from "@/components/latex/ChatRefinementDrawer";
 import PreferencesModal from "@/components/settings/PreferencesModal";
+import LatexStudioSkeleton from "@/components/skeletons/LatexStudioSkeleton";
+import PresetFormatModal from "@/components/latex/PresetFormatModal";
+import ImportResumeModal from "@/components/latex/ImportResumeModal";
+import { DEFAULT_PRESET_ID } from "@/lib/resume-presets";
 
 export default function LaTeXStudioPage() {
   const params = useParams();
@@ -42,6 +50,12 @@ export default function LaTeXStudioPage() {
   const [error, setError] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
+  const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const [outputMode, setOutputMode] = useState<OutputMode>("latex");
+  const [selectedPresetId, setSelectedPresetId] = useState<string>(DEFAULT_PRESET_ID);
+  const [customTemplate, setCustomTemplate] = useState<string>("");
 
   const loadData = async () => {
     try {
@@ -56,6 +70,9 @@ export default function LaTeXStudioPage() {
       if (existing && existing.latex_code) {
         setLatexCode(existing.latex_code);
         setTailoredSummary(existing.tailored_summary || "Synthesized canonical LaTeX resume.");
+        if (existing.latex_code.startsWith("#") || !existing.latex_code.includes("\\documentclass")) {
+          setOutputMode("plaintext");
+        }
       } else {
         // Automatically trigger first synthesis
         await handleGenerateTailored();
@@ -67,11 +84,17 @@ export default function LaTeXStudioPage() {
     }
   };
 
-  const handleGenerateTailored = async () => {
+  const handleGenerateTailored = async (presetId?: string, customTmpl?: string) => {
     try {
       setIsTailoring(true);
       setError("");
-      const result = await tailorApplication(applicationId);
+      const targetPreset = presetId || selectedPresetId;
+      const targetCustom = customTmpl || customTemplate;
+      const result = await tailorApplication(applicationId, {
+        preset_id: targetPreset,
+        custom_template: targetCustom,
+        output_format: outputMode,
+      });
       setLatexCode(result.latex_code);
       setTailoredSummary(result.tailored_summary);
       setHighlightedSkills(result.highlighted_skills || []);
@@ -85,13 +108,32 @@ export default function LaTeXStudioPage() {
 
   const handleCodeChange = async (newCode: string) => {
     setLatexCode(newCode);
-    // Debounced or direct validation check
-    try {
-      const report = await validateCustomLatex(applicationId, newCode);
-      setValidationReport(report);
-    } catch {
-      // quiet fallback
+    if (outputMode === "latex") {
+      try {
+        const report = await validateCustomLatex(applicationId, newCode);
+        setValidationReport(report);
+      } catch {
+        // quiet fallback
+      }
     }
+  };
+
+  const handleImportResume = (content: string, detectedMode: OutputMode) => {
+    setLatexCode(content);
+    setOutputMode(detectedMode);
+  };
+
+  const handleSelectPreset = async (presetId: string, customTmpl?: string) => {
+    setSelectedPresetId(presetId);
+    if (customTmpl) {
+      setCustomTemplate(customTmpl);
+    }
+    if (presetId === "plaintext_standard") {
+      setOutputMode("plaintext");
+    } else if (presetId !== "custom") {
+      setOutputMode("latex");
+    }
+    await handleGenerateTailored(presetId, customTmpl);
   };
 
   useEffect(() => {
@@ -101,22 +143,7 @@ export default function LaTeXStudioPage() {
   }, [applicationId]);
 
   if (loading || isTailoring) {
-    return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center p-8 text-center">
-        <div
-          className="h-12 w-12 rounded-full border-2 border-t-transparent animate-spin mb-4"
-          style={{ borderColor: `${selectedModel.colors.primary} transparent transparent transparent` }}
-        />
-        <h3 className="text-base font-bold text-zinc-900 dark:text-white">
-          {isTailoring ? "Resume Writer Agent Synthesizing LaTeX..." : "Loading LaTeX Studio..."}
-        </h3>
-        <p className="text-xs text-zinc-500 mt-1 max-w-sm">
-          {isTailoring
-            ? `Grounding bullet points in candidate evidence and formatting canonical TeX with ${selectedModel.name}.`
-            : "Initializing split-pane editor and client-side compiler."}
-        </p>
-      </div>
-    );
+    return <LatexStudioSkeleton />;
   }
 
   return (
@@ -165,7 +192,56 @@ export default function LaTeXStudioPage() {
         </div>
 
         {/* Studio Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Format Mode Toggle */}
+          <div className="flex items-center rounded-full border border-zinc-200 dark:border-white/10 p-0.5 bg-zinc-100/90 dark:bg-zinc-900/90 shadow-sm">
+            <button
+              onClick={() => setOutputMode("latex")}
+              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                outputMode === "latex"
+                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm font-bold"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              <FileCode className="h-3 w-3" />
+              <span>LaTeX (.tex)</span>
+            </button>
+            <button
+              onClick={() => setOutputMode("plaintext")}
+              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                outputMode === "plaintext"
+                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm font-bold"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+              }`}
+            >
+              <FileText className="h-3 w-3" />
+              <span>Plaintext (.txt)</span>
+            </button>
+          </div>
+
+          {/* Import / Paste Resume */}
+          <button
+            type="button"
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-white/10 bg-white/80 dark:bg-zinc-800/80 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition"
+            title="Import existing .tex or plaintext resume"
+          >
+            <Upload className="h-3.5 w-3.5 text-blue-500" />
+            <span className="hidden sm:inline">Import</span>
+          </button>
+
+          {/* Presets Button */}
+          <button
+            type="button"
+            onClick={() => setIsPresetModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-white/10 bg-white/80 dark:bg-zinc-800/80 px-3 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition"
+            title="Choose Resume Format Preset"
+          >
+            <Layout className="h-3.5 w-3.5 text-indigo-500" />
+            <span className="hidden sm:inline">Presets</span>
+          </button>
+
+          {/* Preferences Button */}
           <button
             type="button"
             onClick={() => setIsPreferencesOpen(true)}
@@ -176,6 +252,7 @@ export default function LaTeXStudioPage() {
             <span className="hidden sm:inline">Preferences</span>
           </button>
 
+          {/* AI Copilot Button */}
           <button
             type="button"
             onClick={() => setIsChatOpen(!isChatOpen)}
@@ -190,17 +267,18 @@ export default function LaTeXStudioPage() {
             <span>AI Copilot</span>
           </button>
 
+          {/* Regenerate Button */}
           <button
-            onClick={handleGenerateTailored}
+            onClick={() => handleGenerateTailored()}
             disabled={isTailoring}
-            className="flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all hover:brightness-110 active:scale-95 text-white"
+            className="flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all hover:brightness-110 active:scale-95 text-white shadow-md"
             style={{
               background: `linear-gradient(135deg, ${selectedModel.colors.primary} 0%, ${selectedModel.colors.secondary} 100%)`,
               borderColor: `${selectedModel.colors.primary}40`,
             }}
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isTailoring ? "animate-spin" : ""}`} />
-            <span>Regenerate LaTeX</span>
+            <span>Regenerate</span>
           </button>
         </div>
       </div>
@@ -215,7 +293,7 @@ export default function LaTeXStudioPage() {
 
       {/* Split-Pane Studio Workspace */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 pb-4 min-h-0 overflow-hidden">
-        {/* Left Pane: Interactive LaTeX Code Editor */}
+        {/* Left Pane: Interactive LaTeX / Text Code Editor */}
         <div className="h-full min-h-0 overflow-hidden">
           <LaTeXEditor
             code={latexCode}
@@ -226,7 +304,7 @@ export default function LaTeXStudioPage() {
 
         {/* Right Pane: Client-Side Compiled A4 Live Preview */}
         <div className="h-full min-h-0 overflow-hidden">
-          <LaTeXPreview latexCode={latexCode} />
+          <LaTeXPreview latexCode={latexCode} mode={outputMode} />
         </div>
       </div>
 
@@ -242,6 +320,23 @@ export default function LaTeXStudioPage() {
       <PreferencesModal
         isOpen={isPreferencesOpen}
         onClose={() => setIsPreferencesOpen(false)}
+      />
+
+      {/* Preset Format Modal */}
+      <PresetFormatModal
+        isOpen={isPresetModalOpen}
+        onClose={() => setIsPresetModalOpen(false)}
+        currentPresetId={selectedPresetId}
+        onSelectPreset={handleSelectPreset}
+        customTemplate={customTemplate}
+        isTailoring={isTailoring}
+      />
+
+      {/* Import / Paste Resume Modal */}
+      <ImportResumeModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportResume}
       />
     </div>
   );

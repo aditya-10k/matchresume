@@ -7,6 +7,7 @@ from app.schemas.application import (
     ApplicationCreate,
     ApplicationResponse,
     AnalysisResponse,
+    TailorRequest,
 )
 from app.services.application_service import application_service
 from app.services.pdf_service import extract_text_from_pdf_bytes
@@ -134,19 +135,26 @@ def analyze_application(
 @router.post("/{application_id}/tailor")
 def tailor_application(
     application_id: str,
+    payload: Optional[TailorRequest] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
     groq_api_key: str = Depends(get_resolved_groq_key),
     groq_model: str = Depends(get_resolved_groq_model),
 ):
-    """Runs the ResumeWriterAgent and ValidatorAgent to generate and audit a tailored LaTeX resume."""
+    """Runs the ResumeWriterAgent and ValidatorAgent to generate and audit a tailored LaTeX or Plaintext resume."""
     try:
+        preset_id = payload.preset_id if payload else "classic_tech"
+        custom_template = payload.custom_template if payload else None
+        output_format = payload.output_format if payload else "latex"
         return application_service.tailor_application(
             db,
             application_id,
             groq_api_key=groq_api_key,
             user_id=current_user.id,
             groq_model=groq_model,
+            preset_id=preset_id,
+            custom_template=custom_template,
+            output_format=output_format,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
