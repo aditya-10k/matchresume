@@ -56,12 +56,33 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/knot.svg", type: "image/svg+xml" },
+      {
+        url: "/brand-black.png",
+        media: "(prefers-color-scheme: light)",
+        type: "image/png",
+      },
+      {
+        url: "/brand-white.png",
+        media: "(prefers-color-scheme: dark)",
+        type: "image/png",
+      },
+      {
+        url: "/favicon-32x32-dark.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+      {
+        url: "/favicon.ico",
+      },
     ],
     apple: [
-      { url: "/knot.svg", type: "image/svg+xml" },
+      {
+        url: "/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
     ],
+    shortcut: "/brand-white.png",
   },
   manifest: "/manifest.json",
   openGraph: {
@@ -74,19 +95,27 @@ export const metadata: Metadata = {
     siteName: "matchresume",
     images: [
       {
-        url: "/knot.svg",
-        width: 512,
-        height: 512,
-        alt: "matchresume Interlocking Career Knot Icon",
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "matchresume - AI Career Studio & Vector Resume Intelligence",
+        type: "image/png",
+      },
+      {
+        url: "/og-image-light.png",
+        width: 1200,
+        height: 630,
+        alt: "matchresume - Light Theme OpenGraph Preview",
+        type: "image/png",
       },
     ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "matchresume | AI Career Studio & Vector Resume Intelligence",
     description:
       "Dense vector RAG candidate knowledge graph, multi-agent resume tailoring, and ATS LaTeX synthesis.",
-    images: ["/knot.svg"],
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
@@ -110,8 +139,11 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "WebApplication",
     name: "matchresume",
+    url: siteUrl,
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
+    logo: `${siteUrl}/brand-black.png`,
+    image: `${siteUrl}/og-image.png`,
     offers: {
       "@type": "Offer",
       price: "0",

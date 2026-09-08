@@ -74,13 +74,20 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
           </button>
           <Link href="/" className="flex items-center gap-2">
             <div
-              className="flex h-7 w-7 items-center justify-center rounded-lg shadow-sm"
-              style={{
-                background: `linear-gradient(135deg, ${selectedModel.colors.primary} 0%, ${selectedModel.colors.secondary} 100%)`,
-                color: "#fff",
-              }}
+              className="flex h-7 w-7 items-center justify-center rounded-lg shadow-sm overflow-hidden"
+              style={
+                isMounted && isLight
+                  ? {
+                      background: "rgba(0,0,0,0.06)",
+                      border: "1px solid rgba(0,0,0,0.08)",
+                    }
+                  : {
+                      background: `linear-gradient(135deg, ${selectedModel.colors.primary} 0%, ${selectedModel.colors.secondary} 100%)`,
+                      boxShadow: `0 2px 10px ${selectedModel.colors.primary}35`,
+                    }
+              }
             >
-              <KnotIcon className="h-4 w-4 text-white" />
+              <KnotIcon className="h-5 w-5" />
             </div>
             <span className="text-sm font-bold tracking-tight text-zinc-900 dark:text-white">
               matchresume
@@ -278,14 +285,20 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
           <div className={`flex items-center h-16 px-4 border-b border-zinc-200/60 dark:border-white/5 ${isCollapsed ? "justify-center" : "justify-between"}`}>
             <Link href="/" className="flex items-center gap-2.5 min-w-0 flex-1 group">
               <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl shadow-sm transition-transform group-hover:scale-105"
-                style={{
-                  background: `linear-gradient(135deg, ${selectedModel.colors.primary} 0%, ${selectedModel.colors.secondary} 100%)`,
-                  boxShadow: `0 2px 10px ${selectedModel.colors.primary}35`,
-                  color: "#fff",
-                }}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl shadow-sm transition-transform group-hover:scale-105 overflow-hidden p-1"
+                style={
+                  isMounted && isLight
+                    ? {
+                        background: "rgba(0,0,0,0.05)",
+                        border: "1px solid rgba(0,0,0,0.08)",
+                      }
+                    : {
+                        background: `linear-gradient(135deg, ${selectedModel.colors.primary} 0%, ${selectedModel.colors.secondary} 100%)`,
+                        boxShadow: `0 2px 10px ${selectedModel.colors.primary}35`,
+                      }
+                }
               >
-                <KnotIcon className="h-5 w-5 text-white" />
+                <KnotIcon className="h-6 w-6" />
               </div>
               {!isCollapsed && (
                 <div className="flex flex-col min-w-0 truncate">
