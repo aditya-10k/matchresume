@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: matchresume-backend
+    env: python
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DEBUG
+        value: "false"
+      - key: USE_MOCK_RAG
+        value: "false"
+      - key: CHROMA_PERSIST_DIR
+        value: "./chroma_data"
+      - key: DATABASE_URL
+        sync: false  # Paste your Neon PostgreSQL connection string here: postgresql://...
+      - key: CORS_ORIGINS
+        value: '["https://matchresume.web.app","https://matchresume.firebaseapp.com","http://localhost:3000"]'
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        value: "yR7gU_0wz3D5P9L6F2M8A4Q1J5X8T7K2N4V0Z3C6E9A="
+      - key: GROQ_MODEL
+        value: "qwen/qwen3.6-27b"

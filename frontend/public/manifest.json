@@ -1,0 +1,26 @@
+{
+  "name": "matchresume | AI Career Studio",
+  "short_name": "matchresume",
+  "description": "Personal AI career intelligence system powered by dense vector RAG and autonomous agents.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#080402",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/knot.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

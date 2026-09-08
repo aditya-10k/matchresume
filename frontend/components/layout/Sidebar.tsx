@@ -28,6 +28,7 @@ import { useModel } from "@/context/ModelContext";
 import { useAuth } from "@/context/AuthContext";
 import ModelSelector from "@/components/ui/ModelSelector";
 import PreferencesModal from "@/components/settings/PreferencesModal";
+import KnotIcon from "@/components/ui/KnotIcon";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -79,7 +80,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
                 color: "#fff",
               }}
             >
-              <Sparkles className="h-4 w-4" />
+              <KnotIcon className="h-4 w-4 text-white" />
             </div>
             <span className="text-sm font-bold tracking-tight text-zinc-900 dark:text-white">
               matchresume
@@ -273,7 +274,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
                   color: "#fff",
                 }}
               >
-                <Sparkles className="h-4 w-4" />
+                <KnotIcon className="h-5 w-5 text-white" />
               </div>
               {!isCollapsed && (
                 <div className="flex flex-col min-w-0 truncate">
