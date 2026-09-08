@@ -19,9 +19,9 @@ export default function KnotIcon({ className = "h-5 w-5", size, color }: KnotIco
     >
       <defs>
         <linearGradient id="knot-dynamic-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="currentColor" stop-opacity="1" />
-          <stop offset="50%" stop-color="currentColor" stop-opacity="0.85" />
-          <stop offset="100%" stop-color="currentColor" stop-opacity="0.65" />
+          <stop offset="0%" stopColor="currentColor" stopOpacity="1" />
+          <stop offset="50%" stopColor="currentColor" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0.65" />
         </linearGradient>
       </defs>
       {/* Endless Interlocking Career Knot */}

@@ -92,10 +92,13 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
           <button
             onClick={toggleColorMode}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 dark:border-white/10 bg-black/5 dark:bg-white/5 text-zinc-700 dark:text-zinc-300"
-            title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
-            suppressHydrationWarning
+            title={isMounted && isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
           >
-            {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4 text-amber-300" />}
+            {isMounted && isLight ? (
+              <Sun className="h-4 w-4 text-amber-500" />
+            ) : (
+              <Moon className="h-4 w-4 text-blue-400" />
+            )}
           </button>
         </div>
       </div>
@@ -246,10 +249,18 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
               <button
                 onClick={toggleColorMode}
                 className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-white/10 px-3 py-1 text-xs"
-                suppressHydrationWarning
               >
-                {isLight ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5 text-amber-300" />}
-                <span>{isLight ? "Dark" : "Light"}</span>
+                {isMounted && isLight ? (
+                  <>
+                    <Sun className="h-3.5 w-3.5 text-amber-500" />
+                    <span>Light</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="h-3.5 w-3.5 text-blue-400" />
+                    <span>Dark</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -528,10 +539,9 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
               <button
                 onClick={toggleColorMode}
                 className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-sm border border-zinc-200/80 dark:border-white/10 hover:bg-zinc-100 dark:hover:bg-zinc-700/80 transition-all active:scale-95"
-                title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
-                suppressHydrationWarning
+                title={isMounted && isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
               >
-                {isLight ? (
+                {isMounted && isLight ? (
                   <>
                     <Sun className="h-3.5 w-3.5 text-amber-500" />
                     <span>Light</span>
@@ -549,10 +559,9 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
               <button
                 onClick={toggleColorMode}
                 className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200/80 dark:border-white/10 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
-                suppressHydrationWarning
+                title={isMounted && isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
               >
-                {isLight ? <Sun className="h-4 w-4 text-amber-500" /> : <Moon className="h-4 w-4 text-blue-400" />}
+                {isMounted && isLight ? <Sun className="h-4 w-4 text-amber-500" /> : <Moon className="h-4 w-4 text-blue-400" />}
               </button>
             </div>
           )}

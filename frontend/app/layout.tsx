@@ -60,7 +60,7 @@ export const metadata: Metadata = {
       { url: "/knot.svg", type: "image/svg+xml" },
     ],
     apple: [
-      { url: "/apple-icon.svg", type: "image/svg+xml" },
+      { url: "/knot.svg", type: "image/svg+xml" },
     ],
   },
   manifest: "/manifest.json",
@@ -133,13 +133,11 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
-      <head>
+      <body className="min-h-screen text-zinc-900 dark:text-zinc-100 antialiased">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-      </head>
-      <body className="min-h-screen text-zinc-900 dark:text-zinc-100 antialiased">
         <AuthProvider>
           <ModelProvider>
             <AppShell>{children}</AppShell>
