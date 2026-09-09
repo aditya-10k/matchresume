@@ -17,6 +17,7 @@ import {
 import { Message } from "@/lib/types";
 import { getChatMessages, sendChatMessage } from "@/lib/api/chat";
 import { useAuth } from "@/context/AuthContext";
+import { stripAsterisks } from "@/lib/utils";
 
 interface ChatRefinementDrawerProps {
   applicationId: string;
@@ -210,7 +211,7 @@ export default function ChatRefinementDrawer({
                       : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border border-zinc-200/80 dark:border-white/5"
                   }`}
                 >
-                  <div className="whitespace-pre-wrap">{m.content}</div>
+                  <div className="whitespace-pre-wrap">{stripAsterisks(m.content)}</div>
                 </div>
                 {m.role === "user" && (
                   <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-zinc-700 dark:text-zinc-300 shrink-0 mt-0.5">

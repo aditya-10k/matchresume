@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { KnowledgeNode } from "@/lib/api/knowledge";
 import { useModel } from "@/context/ModelContext";
+import { stripAsterisks } from "@/lib/utils";
 
 interface BlobDetailModalProps {
   node: KnowledgeNode | null;
@@ -120,7 +121,7 @@ export default function BlobDetailModal({
                   </span>
                 </div>
                 <h2 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white mt-1">
-                  {node.name}
+                  {stripAsterisks(node.name)}
                 </h2>
               </div>
             </div>
@@ -141,7 +142,7 @@ export default function BlobDetailModal({
                 Executive Overview
               </div>
               <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed">
-                {node.highlight}
+                {stripAsterisks(node.highlight)}
               </p>
             </div>
 
@@ -180,7 +181,7 @@ export default function BlobDetailModal({
                       className="flex items-start gap-2.5 p-3 rounded-xl bg-zinc-50/70 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed"
                     >
                       <span className="h-1.5 w-1.5 rounded-full mt-1.5 shrink-0" style={{ background: config.color }} />
-                      <span>{snippet}</span>
+                      <span>{stripAsterisks(snippet)}</span>
                     </div>
                   ))
                 ) : (
@@ -205,7 +206,7 @@ export default function BlobDetailModal({
                       onClick={() => onSelectRelated(rel)}
                       className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-white/10 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5"
                     >
-                      <span>{rel}</span>
+                      <span>{stripAsterisks(rel)}</span>
                       <ExternalLink className="h-3 w-3 opacity-50" />
                     </button>
                   ))}

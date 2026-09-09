@@ -4,6 +4,9 @@ from app.schemas.application import JDRequirements
 from app.agents.groq_client import groq_client
 
 
+from app.utils.text_sanitizer import strip_asterisks, clean_skill_tag
+
+
 class JDAnalyzerAgent:
     """
     Analyzes raw job descriptions and converts them into structured requirements:
@@ -22,6 +25,11 @@ Return a valid JSON object matching this exact schema:
   "keywords": ["Essential", "domain", "keywords", "for", "ATS", "matching"]
 }
 Keep skill items concise (1-3 words each, e.g. "Python", "RAG", "FastAPI", "PostgreSQL").
+
+STRICT NO-ASTERISK RULE:
+Do NOT use asterisks (*) anywhere in your output.
+Do NOT use **bold** or * bullets. Return clean plain text only.
+
 STRICT ANTI-HALLUCINATION RULES:
 - Only extract skills, tools, frameworks, and qualifications explicitly mentioned in the text.
 - If the text is NOT a legitimate job description or does not contain technical requirements (e.g. casual greetings like "hi", nonsensical input, or unrelated text), return empty lists for required_skills, preferred_skills, responsibilities, and keywords, and set role to "Unspecified Position".
@@ -46,11 +54,11 @@ STRICT ANTI-HALLUCINATION RULES:
             max_tokens=800
         )
         return JDRequirements(
-            role=data.get("role") or "Target Position",
-            required_skills=data.get("required_skills") or [],
-            preferred_skills=data.get("preferred_skills") or [],
-            responsibilities=data.get("responsibilities") or [],
-            keywords=data.get("keywords") or [],
+            role=strip_asterisks(data.get("role") or "Target Position"),
+            required_skills=[clean_skill_tag(s) for s in (data.get("required_skills") or []) if s],
+            preferred_skills=[clean_skill_tag(s) for s in (data.get("preferred_skills") or []) if s],
+            responsibilities=[strip_asterisks(r) for r in (data.get("responsibilities") or []) if r],
+            keywords=[clean_skill_tag(k) for k in (data.get("keywords") or []) if k],
         )
 
 

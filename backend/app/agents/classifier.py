@@ -3,6 +3,7 @@ import re
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
 from app.agents.groq_client import groq_client
+from app.utils.text_sanitizer import strip_asterisks
 
 logger = logging.getLogger("classifier")
 
@@ -102,8 +103,8 @@ Return valid JSON matching this schema:
             return QueryClassification(
                 intent=intent,
                 confidence=float(data.get("confidence", 0.9)),
-                summary=str(data.get("summary", "Classified intent")),
-                key_topics=list(data.get("key_topics", []))
+                summary=strip_asterisks(str(data.get("summary", "Classified intent"))),
+                key_topics=[strip_asterisks(k) for k in list(data.get("key_topics", [])) if k]
             )
         except Exception as e:
             logger.warning(f"Classifier LLM error ({e}), applying fallback heuristic...")

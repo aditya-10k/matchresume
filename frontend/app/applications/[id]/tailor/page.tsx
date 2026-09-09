@@ -28,6 +28,7 @@ import { getPreferences } from "@/lib/api/preferences";
 import { Application } from "@/lib/types";
 import LaTeXEditor from "@/components/latex/LaTeXEditor";
 import LaTeXPreview, { OutputMode } from "@/components/latex/LaTeXPreview";
+import { stripAsterisks, stripAsterisksList } from "@/lib/utils";
 import ChatRefinementDrawer from "@/components/latex/ChatRefinementDrawer";
 import PreferencesModal from "@/components/settings/PreferencesModal";
 import LatexStudioSkeleton from "@/components/skeletons/LatexStudioSkeleton";
@@ -96,7 +97,7 @@ export default function LaTeXStudioPage() {
       const existing = await getTailoredResume(applicationId);
       if (existing && existing.latex_code) {
         setLatexCode(existing.latex_code);
-        setTailoredSummary(existing.tailored_summary || "Synthesized canonical LaTeX resume.");
+        setTailoredSummary(stripAsterisks(existing.tailored_summary || "Synthesized canonical LaTeX resume."));
         if (existing.latex_code.startsWith("#") || !existing.latex_code.includes("\\documentclass")) {
           setOutputMode("plaintext");
         }
@@ -127,8 +128,8 @@ export default function LaTeXStudioPage() {
         output_format: outputMode,
       });
       setLatexCode(result.latex_code);
-      setTailoredSummary(result.tailored_summary);
-      setHighlightedSkills(result.highlighted_skills || []);
+      setTailoredSummary(stripAsterisks(result.tailored_summary));
+      setHighlightedSkills(stripAsterisksList(result.highlighted_skills || []));
       setValidationReport(result.validation);
     } catch (err: any) {
       setError(err.message || "Failed to tailor resume with AI agents.");

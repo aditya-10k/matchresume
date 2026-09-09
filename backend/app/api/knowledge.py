@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.db.models import User, Resume
 from app.api.deps import get_optional_user
 from app.rag.chunking import chunk_resume
+from app.utils.text_sanitizer import strip_asterisks, clean_skill_tag
 
 logger = logging.getLogger("knowledge_api")
 
@@ -71,8 +72,8 @@ def _extract_nodes_from_chunks(chunks: List[Dict[str, Any]], candidate_name: str
                             sub_category=cat_title if len(cat_title) < 30 else "Technical Skills",
                             level="Core Skill",
                             weight=55,
-                            highlight=f"Specialized in {clean_name} within {cat_title}.",
-                            evidence_snippets=[f"{cat_title}: {line}"],
+                            highlight=strip_asterisks(f"Specialized in {clean_name} within {cat_title}."),
+                            evidence_snippets=[strip_asterisks(f"{cat_title}: {line}")],
                             related_nodes=[],
                             source_resume=source
                         )
@@ -86,8 +87,8 @@ def _extract_nodes_from_chunks(chunks: List[Dict[str, Any]], candidate_name: str
 
             if len(proj_name) >= 3 and len(proj_name) < 40:
                 node_id = f"proj-{re.sub(r'[^a-zA-Z0-9]', '_', proj_name.lower())}"
-                evidence = [l for l in lines[1:] if len(l) > 15] or [content]
-                tech_items = [re.sub(r'[*_]', '', t).strip() for t in re.split(r'[,|]', tech_stack) if len(t.strip()) > 1]
+                evidence = [strip_asterisks(l) for l in lines[1:] if len(l) > 15] or [strip_asterisks(content)]
+                tech_items = [clean_skill_tag(t) for t in re.split(r'[,|]', tech_stack) if len(t.strip()) > 1]
                 
                 nodes_map[node_id] = KnowledgeNode(
                     id=node_id,
@@ -96,7 +97,7 @@ def _extract_nodes_from_chunks(chunks: List[Dict[str, Any]], candidate_name: str
                     sub_category="System / Application",
                     level="Key Project",
                     weight=85,
-                    highlight=f"Built and deployed {proj_name}" + (f" utilizing {tech_stack}" if tech_stack else "."),
+                    highlight=strip_asterisks(f"Built and deployed {proj_name}" + (f" utilizing {tech_stack}" if tech_stack else ".")),
                     evidence_snippets=evidence[:4],
                     related_nodes=tech_items[:6],
                     source_resume=source
@@ -109,7 +110,7 @@ def _extract_nodes_from_chunks(chunks: List[Dict[str, Any]], candidate_name: str
             
             if len(exp_title) >= 4 and len(exp_title) < 55:
                 node_id = f"exp-{re.sub(r'[^a-zA-Z0-9]', '_', exp_title.lower())[:25]}"
-                bullets = [l for l in lines[1:] if len(l) > 20] or [content]
+                bullets = [strip_asterisks(l) for l in lines[1:] if len(l) > 20] or [strip_asterisks(content)]
                 
                 nodes_map[node_id] = KnowledgeNode(
                     id=node_id,
@@ -118,7 +119,7 @@ def _extract_nodes_from_chunks(chunks: List[Dict[str, Any]], candidate_name: str
                     sub_category="Work History",
                     level="Professional Role",
                     weight=90,
-                    highlight=f"Professional experience at {exp_title}.",
+                    highlight=strip_asterisks(f"Professional experience at {exp_title}."),
                     evidence_snippets=bullets[:5],
                     related_nodes=[],
                     source_resume=source

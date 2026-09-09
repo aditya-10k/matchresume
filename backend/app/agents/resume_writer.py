@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from app.schemas.application import JDRequirements, RecommendedResume
 from app.schemas.rag import EvidenceChunk
 from app.agents.groq_client import groq_client
+from app.utils.text_sanitizer import strip_asterisks, clean_skill_tag
 
 logger = logging.getLogger("resume_writer")
 
@@ -40,11 +41,14 @@ STRICT ANTI-HALLUCINATION GROUNDING RULES:
    - Use clean, modern formatting: \\usepackage[margin=0.65in]{geometry}, \\usepackage{enumitem}, \\usepackage{hyperref}, \\usepackage{titlesec}.
    - All special characters in plain text MUST be escaped: & as \\&, % as \\%, _ as \\_, # as \\#.
    - Do NOT use custom obscure packages or external font files that fail to compile.
+5. STRICT NO-ASTERISK RULE FOR SUMMARY AND SKILLS:
+    - In "tailored_summary" and "highlighted_skills", NEVER use asterisks (*).
+    - Do NOT use **bold** or * bullets. Use clean plain text only.
 
 Return valid JSON with this exact schema:
 {
   "latex_code": "Complete, standalone compilable LaTeX document starting with \\documentclass and ending with \\end{document}",
-  "tailored_summary": "2-3 sentences explaining how this version was strategically aligned to the JD.",
+  "tailored_summary": "2-3 sentences explaining how this version was strategically aligned to the JD without any asterisks.",
   "highlighted_skills": ["List", "of", "top", "skills", "emphasized"]
 }
 """
@@ -315,10 +319,13 @@ Return valid JSON matching the schema.
         # Remove any hallucinated \hr tags
         code_content = re.sub(r'\\hr\b', '', code_content)
 
+        raw_summary = data.get("tailored_summary", "Tailored to job requirements.")
+        raw_skills = data.get("highlighted_skills", jd_requirements.required_skills[:6])
+
         return TailoredResumeOutput(
             latex_code=code_content,
-            tailored_summary=data.get("tailored_summary", "Tailored to job requirements."),
-            highlighted_skills=data.get("highlighted_skills", jd_requirements.required_skills[:6])
+            tailored_summary=strip_asterisks(raw_summary),
+            highlighted_skills=[clean_skill_tag(s) for s in raw_skills if s]
         )
 
 

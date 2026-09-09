@@ -3,6 +3,8 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from app.agents.groq_client import groq_client
 
+from app.utils.text_sanitizer import strip_asterisks
+
 logger = logging.getLogger("chat_agent")
 
 
@@ -28,9 +30,12 @@ CRITICAL RULES:
    If the user asks to add an experience they don't have, politely explain in your response that you emphasized related skills instead without fabricating facts.
 2. SYNTAX INTEGRITY: Return valid, compilable LaTeX code with balanced braces, intact document environments, and properly escaped characters (\&, \%, \$, \_, \#).
 3. TARGETED ADJUSTMENTS: Apply the user's requested changes directly (e.g. rewording bullets, re-ordering skills, shortening descriptions, emphasizing specific technologies).
-4. RETURN FORMAT: Return valid JSON matching this schema:
+4. STRICT NO-ASTERISK RULE FOR CONVERSATION:
+   In your "message" and "modifications_made" fields, NEVER use asterisks (*).
+   Do NOT use **bold** or * bullets in "message" or "modifications_made". Use clean plain text.
+5. RETURN FORMAT: Return valid JSON matching this schema:
 {
-  "message": "Friendly, professional explanation of the exact changes you made.",
+  "message": "Friendly, professional explanation of the exact changes you made without any asterisks.",
   "updated_latex": "\\documentclass... complete updated LaTeX code ...\\end{document}",
   "modifications_made": ["Bullet 1 in Experience rephrased with metrics", "RAG skills moved to top of Skills section"]
 }
@@ -97,10 +102,13 @@ Return valid JSON only.
             latex_code = latex_code[:-3]
         latex_code = latex_code.strip()
 
+        raw_message = data.get("message", "Updated your resume per instructions.")
+        raw_mods = data.get("modifications_made", ["LaTeX resume updated."])
+
         return ChatRefinementResponse(
-            message=data.get("message", "Updated your resume per instructions."),
+            message=strip_asterisks(raw_message),
             updated_latex=latex_code,
-            modifications_made=data.get("modifications_made", ["LaTeX resume updated."])
+            modifications_made=[strip_asterisks(m) for m in raw_mods if m]
         )
 
 

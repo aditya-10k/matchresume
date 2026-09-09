@@ -4,6 +4,7 @@ import re
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from app.agents.groq_client import groq_client
+from app.utils.text_sanitizer import strip_asterisks
 
 logger = logging.getLogger("validator")
 
@@ -39,6 +40,10 @@ You must verify two critical dimensions:
    - Did the writer fabricate any new credentials, previous employers, or unearned awards?
    - If the writer merely rephrased bullets to emphasize relevant skills, that is ALLOWED and valid.
 
+STRICT NO-ASTERISK RULE:
+In feedback, hallucinations_detected, and syntax_issues, NEVER use asterisks (*).
+Return clean plain text only.
+
 Return valid JSON:
 {
   "is_valid": true,
@@ -46,7 +51,7 @@ Return valid JSON:
   "factual_score": 95,
   "hallucinations_detected": [],
   "syntax_issues": [],
-  "feedback": "Concise summary of validation findings."
+  "feedback": "Concise summary of validation findings without any asterisks."
 }
 """
 
@@ -102,13 +107,16 @@ Perform the factual audit and LaTeX syntax check. Identify any hallucinated clai
                 if w not in detected_issues:
                     detected_issues.append(w)
 
+            raw_feedback = data.get("feedback", "Validation passed with factual grounding.")
+            raw_hallucinations = data.get("hallucinations_detected", [])
+
             return ValidationReport(
                 is_valid=is_valid,
                 latex_syntax_valid=latex_valid,
                 factual_score=int(data.get("factual_score", 90)),
-                hallucinations_detected=data.get("hallucinations_detected", []),
-                syntax_issues=detected_issues,
-                feedback=data.get("feedback", "Validation passed with factual grounding.")
+                hallucinations_detected=[strip_asterisks(h) for h in raw_hallucinations if h],
+                syntax_issues=[strip_asterisks(i) for i in detected_issues if i],
+                feedback=strip_asterisks(raw_feedback)
             )
         except Exception as e:
             logger.error(f"Validator LLM error: {e}")
@@ -117,7 +125,7 @@ Perform the factual audit and LaTeX syntax check. Identify any hallucinated clai
                 latex_syntax_valid=len(syntax_warnings) == 0,
                 factual_score=85,
                 hallucinations_detected=[],
-                syntax_issues=syntax_warnings,
+                syntax_issues=[strip_asterisks(w) for w in syntax_warnings],
                 feedback="Static validation completed."
             )
 

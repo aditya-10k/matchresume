@@ -22,6 +22,7 @@ import { getApplication, analyzeApplication } from "@/lib/api/applications";
 import { Application, ApplicationAnalysis, EvidenceChunk } from "@/lib/types";
 import MatchGauge from "@/components/applications/MatchGauge";
 import FitAnalysisSkeleton from "@/components/skeletons/FitAnalysisSkeleton";
+import { stripAsterisks } from "@/lib/utils";
 
 export default function ApplicationDetailPage({
   params,
@@ -168,7 +169,7 @@ export default function ApplicationDetailPage({
               matchresume Recommendation Rationale
             </h3>
             <p className="mt-3 text-xs sm:text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed">
-              {recommendation.reason}
+              {stripAsterisks(recommendation.reason)}
             </p>
 
             {/* Strengths Grid */}
@@ -184,7 +185,7 @@ export default function ApplicationDetailPage({
                     className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 dark:bg-emerald-950/25 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 shadow-sm"
                   >
                     <CheckCircle2 className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
-                    {skill}
+                    {stripAsterisks(skill)}
                   </span>
                 ))}
               </div>
@@ -204,7 +205,7 @@ export default function ApplicationDetailPage({
                       className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 dark:bg-amber-950/25 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 shadow-sm"
                     >
                       <AlertTriangle className="h-3 w-3 text-amber-500 dark:text-amber-400" />
-                      {skill}
+                      {stripAsterisks(skill)}
                     </span>
                   ))}
                 </div>
@@ -236,7 +237,7 @@ export default function ApplicationDetailPage({
                   key={skill}
                   className="rounded-full border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-white/5 px-3 py-1 text-xs text-zinc-800 dark:text-zinc-200"
                 >
-                  {skill}
+                  {stripAsterisks(skill)}
                 </span>
               ))}
             </div>
@@ -250,7 +251,7 @@ export default function ApplicationDetailPage({
                   key={skill}
                   className="rounded-full border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-white/5 px-3 py-1 text-xs text-zinc-600 dark:text-zinc-400"
                 >
-                  {skill}
+                  {stripAsterisks(skill)}
                 </span>
               ))}
             </div>
@@ -262,7 +263,7 @@ export default function ApplicationDetailPage({
             <h4 className="text-xs font-semibold text-zinc-900 dark:text-white mb-2">Key Role Responsibilities</h4>
             <ul className="space-y-1 text-xs text-zinc-700 dark:text-zinc-300 list-disc list-inside">
               {requirements.responsibilities.map((resp, i) => (
-                <li key={i}>{resp}</li>
+                <li key={i}>{stripAsterisks(resp)}</li>
               ))}
             </ul>
           </div>
@@ -323,7 +324,7 @@ export default function ApplicationDetailPage({
                       </span>
                     </div>
                     <p className="text-xs font-sans text-zinc-800 dark:text-zinc-300 leading-relaxed">
-                      {chunk.content}
+                      {stripAsterisks(chunk.content)}
                     </p>
                   </div>
                 ))

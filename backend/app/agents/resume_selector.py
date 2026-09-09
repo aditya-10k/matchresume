@@ -7,6 +7,9 @@ from app.rag import retrieve_context
 from app.agents.groq_client import groq_client
 
 
+from app.utils.text_sanitizer import strip_asterisks, clean_skill_tag
+
+
 class ResumeSelectorAgent:
     """
     Evaluates available candidate resumes against JD requirements using retrieved RAG evidence.
@@ -19,13 +22,18 @@ Analyze the candidate resumes and their retrieved evidence against the job descr
 Determine which resume is the best match.
 Calculate a match score (0-100), identify strong matching areas, missing gaps, and provide a clear explanation.
 
+STRICT NO-ASTERISK RULE:
+Do NOT use asterisks (*) anywhere in your output.
+Do NOT use asterisks for bolding (no **word**), italics, or bullets.
+Return clean plain text only.
+
 Return JSON in this format:
 {
   "resume_id": "id of the best resume",
   "match_score": 85,
   "strengths": ["List", "of", "matching", "skills/projects"],
   "gaps": ["List", "of", "missing", "or", "weak", "skills"],
-  "reason": "Explanation of why this resume was selected."
+  "reason": "Explanation of why this resume was selected without any asterisks."
 }
 """
 
@@ -100,13 +108,17 @@ Return a valid JSON object matching the schema.
         chosen_id = llm_eval.get("resume_id")
         chosen_resume = next((r for r in available_resumes if r.id == chosen_id), available_resumes[0])
 
+        raw_strengths = llm_eval.get("strengths") or []
+        raw_gaps = llm_eval.get("gaps") or []
+        raw_reason = llm_eval.get("reason") or "LLM candidate evaluation complete."
+
         return RecommendedResume(
             resume_id=chosen_resume.id,
             resume_name=chosen_resume.name,
             match_score=int(llm_eval.get("match_score", 0)),
-            strengths=llm_eval.get("strengths") or [],
-            gaps=llm_eval.get("gaps") or [],
-            reason=llm_eval.get("reason") or "LLM candidate evaluation complete."
+            strengths=[clean_skill_tag(s) for s in raw_strengths if s],
+            gaps=[clean_skill_tag(g) for g in raw_gaps if g],
+            reason=strip_asterisks(raw_reason)
         )
 
 

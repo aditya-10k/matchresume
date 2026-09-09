@@ -19,6 +19,8 @@ import Link from "next/link";
 import { useModel } from "@/context/ModelContext";
 import { useAuth } from "@/context/AuthContext";
 import { CareerQueryAnswer, queryCareerProfile } from "@/lib/api/career";
+import CleanAIResponse from "@/components/ui/CleanAIResponse";
+import { stripAsterisks } from "@/lib/utils";
 
 interface CareerIntelligenceModalProps {
   initialData: CareerQueryAnswer | null;
@@ -145,7 +147,7 @@ export default function CareerIntelligenceModal({
                 Q
               </div>
               <div className="text-sm font-semibold text-zinc-100 bg-white/5 px-4 py-2.5 rounded-2xl border border-white/10 max-w-[90%]">
-                {data.query}
+                {stripAsterisks(data.query)}
               </div>
             </div>
 
@@ -161,8 +163,8 @@ export default function CareerIntelligenceModal({
                 <Sparkles className="h-3.5 w-3.5" />
               </div>
               <div className="flex-1 space-y-3">
-                <div className="text-sm leading-relaxed text-zinc-200 whitespace-pre-line bg-black/40 p-4 rounded-2xl border border-white/5">
-                  {data.answer}
+                <div className="bg-black/40 p-4 rounded-2xl border border-white/5">
+                  <CleanAIResponse content={data.answer} dotColor="bg-cyan-400" />
                 </div>
 
                 {/* Grounded Evidence Toggle */}
@@ -204,7 +206,7 @@ export default function CareerIntelligenceModal({
                                 </span>
                                 <span>{ev.source_resume}</span>
                               </div>
-                              <p className="text-zinc-300">{ev.content}</p>
+                              <p className="text-zinc-300">{stripAsterisks(ev.content)}</p>
                             </div>
                           ))}
                         </motion.div>
@@ -228,7 +230,7 @@ export default function CareerIntelligenceModal({
                           className="text-xs px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:border-white/25 transition-all text-left flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                         >
                           <Compass className="h-3 w-3 text-cyan-400 shrink-0" />
-                          <span>{sf}</span>
+                          <span>{stripAsterisks(sf)}</span>
                         </button>
                       ))}
                     </div>

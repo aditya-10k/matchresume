@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
 from app.agents.groq_client import groq_client
+from app.utils.text_sanitizer import strip_asterisks
 
 logger = logging.getLogger("guardrail")
 
@@ -87,7 +88,7 @@ Return valid JSON matching this schema:
             return GuardrailResult(
                 is_valid=bool(data.get("is_valid", False)),
                 category=str(data.get("category", "IRRELEVANT_NOISE")),
-                reason=str(data.get("reason", "Input could not be verified as a career-relevant prompt."))
+                reason=strip_asterisks(str(data.get("reason", "Input could not be verified as a career-relevant prompt.")))
             )
         except Exception as e:
             logger.warning(f"Guardrail LLM evaluation warning: {e}, using heuristic evaluation...")
