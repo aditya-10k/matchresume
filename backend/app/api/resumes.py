@@ -74,12 +74,6 @@ async def upload_resume(
                 "user_id": current_user.id,
             }
         )
-    except NotImplementedError as nie:
-        # If user hasn't implemented RAG and USE_MOCK_RAG=False
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail=f"RAG Pipeline not yet implemented: {str(nie)}. Set USE_MOCK_RAG=True in backend/.env for mock testing."
-        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

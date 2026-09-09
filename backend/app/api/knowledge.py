@@ -188,10 +188,10 @@ def get_knowledge_universe(
         )
 
     store = get_vector_store()
-    if store.collection.count() == 0:
-        backfill_existing_resumes()
-
     raw_chunks = store.get_user_chunks(user_id=current_user.id)
+    if not raw_chunks:
+        backfill_existing_resumes(user_id=current_user.id)
+        raw_chunks = store.get_user_chunks(user_id=current_user.id)
     candidate_name = getattr(current_user, "name", None) or "Candidate"
     
     if not raw_chunks:

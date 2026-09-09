@@ -54,12 +54,14 @@ def ingest_resume(text: str, resume_id: str, metadata: Optional[Dict[str, Any]] 
     )
 
 
-def backfill_existing_resumes() -> int:
+def backfill_existing_resumes(user_id: Optional[str] = None) -> int:
     """
-    Checks all candidate resumes in SQLite.
+    Checks candidate resumes for a given user in the database.
     If a resume is not yet indexed in ChromaDB, chunks and indexes it.
-    Ensures existing databases automatically benefit from vector RAG.
     """
+    if not user_id:
+        return 0
+
     from app.db.session import SessionLocal
     from app.db.models import Resume
 
@@ -67,17 +69,17 @@ def backfill_existing_resumes() -> int:
     store = get_vector_store()
     backfilled_count = 0
     try:
-        resumes = db.query(Resume).all()
+        resumes = db.query(Resume).filter(Resume.user_id == user_id).all()
         for r in resumes:
             if not r.raw_text:
                 continue
-            existing = store.get_user_chunks(resume_id=r.id)
+            existing = store.get_user_chunks(user_id=user_id, resume_id=r.id)
             if not existing:
                 logger.info(f"Backfilling vector indexing for resume: {r.name} ({r.id})...")
                 meta = {
                     "source": r.filename or f"{r.name}.pdf",
                     "name": r.name,
-                    "user_id": r.user_id or "",
+                    "user_id": user_id,
                     "resume_id": r.id
                 }
                 ingest_resume(r.raw_text, r.id, metadata=meta)
@@ -85,7 +87,7 @@ def backfill_existing_resumes() -> int:
             else:
                 logger.debug(f"Resume {r.id} already has {len(existing)} indexed chunks in ChromaDB.")
     except Exception as e:
-        logger.error(f"Error during resume backfill: {e}")
+        logger.error(f"Error during resume backfill for user {user_id}: {e}")
     finally:
         db.close()
     return backfilled_count

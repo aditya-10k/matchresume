@@ -174,7 +174,7 @@ def get_tailored_resume(
     app = application_service.get_application(db, application_id, user_id=current_user.id)
     if not app:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
-    data = application_service.get_latest_tailored_resume(db, application_id)
+    data = application_service.get_latest_tailored_resume(db, application_id, user_id=current_user.id)
     if not data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No tailored resume generated yet.")
     return data
@@ -203,7 +203,7 @@ def validate_custom_latex(
 
     source_text = ""
     if app.selected_resume_id:
-        resume = db.query(Resume).filter(Resume.id == app.selected_resume_id).first()
+        resume = db.query(Resume).filter(Resume.id == app.selected_resume_id, Resume.user_id == current_user.id).first()
         if resume:
             source_text = resume.raw_text
 

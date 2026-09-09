@@ -20,7 +20,7 @@ function NewApplicationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { selectedModel } = useModel();
-  const { requireGroqKey } = useAuth();
+  const { requireGroqKey, requireAuth } = useAuth();
 
   const [jdText, setJdText] = useState("");
   const [company, setCompany] = useState("");
@@ -41,6 +41,7 @@ function NewApplicationContent() {
   }, [searchParams]);
 
   const handleStartAnalysis = async () => {
+    if (!requireAuth()) return;
     if (!requireGroqKey()) return;
     if (!uploadedPdf && (!jdText || !jdText.trim())) {
       setErrorMessage("Please paste a job description or drop a JD PDF.");

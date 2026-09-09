@@ -61,6 +61,11 @@ class ResumeRetriever(BaseRetriever):
         if not query or not query.strip():
             return []
 
+        # Multi-tenant safety check: never run vector or BM25 retrieval without user or resume scope
+        if not user_id and not resume_id:
+            logger.warning("Retrieval blocked: neither user_id nor resume_id provided (multi-tenant guard).")
+            return []
+
         # 1. Attempt Dense Vector Retrieval via ChromaDB
         try:
             store = get_vector_store()

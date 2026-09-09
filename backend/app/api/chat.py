@@ -41,7 +41,7 @@ def get_chat_history(
     """Retrieve the conversation history for this application."""
     application = db.query(Application).filter(
         Application.id == application_id,
-        (Application.user_id == current_user.id) | (Application.user_id == None)
+        Application.user_id == current_user.id
     ).first()
     if not application:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
@@ -70,7 +70,7 @@ def send_chat_message(
     """Send an instruction to refine the LaTeX resume conversationally."""
     application = db.query(Application).filter(
         Application.id == application_id,
-        (Application.user_id == current_user.id) | (Application.user_id == None)
+        Application.user_id == current_user.id
     ).first()
     if not application:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
@@ -89,7 +89,7 @@ def send_chat_message(
     # Fetch candidate source resume text
     source_text = ""
     if application.selected_resume_id:
-        source_resume = db.query(Resume).filter(Resume.id == application.selected_resume_id).first()
+        source_resume = db.query(Resume).filter(Resume.id == application.selected_resume_id, Resume.user_id == current_user.id).first()
         if source_resume:
             source_text = source_resume.raw_text
 
@@ -99,7 +99,7 @@ def send_chat_message(
 
     # Fetch user preferences (memory)
     prefs = db.query(UserPreference).filter(
-        (UserPreference.user_id == current_user.id) | (UserPreference.user_id == None)
+        UserPreference.user_id == current_user.id
     ).all()
     pref_strings = [f"{p.key}: {p.value}" for p in prefs]
 

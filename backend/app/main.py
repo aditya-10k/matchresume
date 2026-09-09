@@ -11,15 +11,7 @@ from app.api.router import api_router
 async def lifespan(app: FastAPI):
     # Startup: Initialize database tables
     init_db()
-    # Startup: Ensure candidate resumes are indexed into ChromaDB vector store
-    try:
-        from app.rag import backfill_existing_resumes
-        backfill_existing_resumes()
-    except Exception as e:
-        import logging
-        logging.getLogger("main").warning(f"Vector RAG startup backfill notice: {e}")
     yield
-    # Shutdown logic if needed
 
 
 app = FastAPI(
@@ -48,8 +40,7 @@ def health_check():
     return {
         "status": "healthy",
         "app_name": settings.APP_NAME,
-        "rag": "active",
-        "mock_rag": settings.USE_MOCK_RAG
+        "rag": "active"
     }
 
 

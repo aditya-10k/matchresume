@@ -32,16 +32,14 @@ class ApplicationService:
         return application
 
     def get_application(self, db: Session, application_id: str, user_id: Optional[str] = None) -> Optional[Application]:
-        query = db.query(Application).filter(Application.id == application_id)
-        if user_id:
-            query = query.filter(Application.user_id == user_id)
-        return query.first()
+        if not user_id:
+            return None
+        return db.query(Application).filter(Application.id == application_id, Application.user_id == user_id).first()
 
     def list_applications(self, db: Session, user_id: Optional[str] = None) -> List[Application]:
-        query = db.query(Application)
-        if user_id:
-            query = query.filter(Application.user_id == user_id)
-        return query.order_by(Application.created_at.desc()).all()
+        if not user_id:
+            return []
+        return db.query(Application).filter(Application.user_id == user_id).order_by(Application.created_at.desc()).all()
 
     def analyze_application(
         self,
@@ -114,7 +112,10 @@ class ApplicationService:
             self.analyze_application(db, application_id, groq_api_key=groq_api_key, user_id=user_id, groq_model=groq_model)
             application = self.get_application(db, application_id, user_id=user_id)
 
-        selected_resume = db.query(Resume).filter(Resume.id == application.selected_resume_id).first()
+        resume_query = db.query(Resume).filter(Resume.id == application.selected_resume_id)
+        if user_id:
+            resume_query = resume_query.filter(Resume.user_id == user_id)
+        selected_resume = resume_query.first()
         if not selected_resume:
             raise ValueError("No candidate resume is available to tailor.")
 
@@ -169,9 +170,9 @@ class ApplicationService:
             "validation": tailored_data["validation"]
         }
 
-    def get_latest_tailored_resume(self, db: Session, application_id: str) -> Optional[Dict[str, Any]]:
+    def get_latest_tailored_resume(self, db: Session, application_id: str, user_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Retrieves the most recent tailored LaTeX for an application."""
-        application = self.get_application(db, application_id)
+        application = self.get_application(db, application_id, user_id=user_id)
         if not application:
             return None
         latest = (

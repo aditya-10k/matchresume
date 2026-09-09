@@ -15,8 +15,6 @@ services:
         value: 3.11.9
       - key: DEBUG
         value: "false"
-      - key: USE_MOCK_RAG
-        value: "false"
       - key: CHROMA_PERSIST_DIR
         value: "./chroma_data"
       - key: DATABASE_URL

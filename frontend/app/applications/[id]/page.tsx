@@ -17,6 +17,7 @@ import {
   Code2
 } from "lucide-react";
 import { useModel } from "@/context/ModelContext";
+import { useAuth } from "@/context/AuthContext";
 import { getApplication, analyzeApplication } from "@/lib/api/applications";
 import { Application, ApplicationAnalysis, EvidenceChunk } from "@/lib/types";
 import MatchGauge from "@/components/applications/MatchGauge";
@@ -30,6 +31,7 @@ export default function ApplicationDetailPage({
   const resolvedParams = use(params);
   const applicationId = resolvedParams.id;
   const { selectedModel } = useModel();
+  const { user, token } = useAuth();
 
   const [application, setApplication] = useState<Application | null>(null);
   const [analysis, setAnalysis] = useState<ApplicationAnalysis | null>(null);
@@ -38,6 +40,11 @@ export default function ApplicationDetailPage({
   const [showEvidence, setShowEvidence] = useState(false);
 
   const loadData = async () => {
+    if (!token || !user) {
+      setLoading(false);
+      setError("Please sign in to view this application.");
+      return;
+    }
     try {
       setLoading(true);
       setError("");

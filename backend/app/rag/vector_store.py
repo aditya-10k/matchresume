@@ -118,11 +118,10 @@ class ChromaStore(BaseVectorStore):
         self,
         user_id: Optional[str] = None,
         resume_id: Optional[str] = None,
-        allow_all: bool = False
     ) -> List[Dict[str, Any]]:
         """Retrieves indexed chunks for a candidate or resume to construct the Knowledge Graph."""
-        if not user_id and not resume_id and not allow_all:
-            # Multi-tenant guard: refuse un-scoped dump across all users unless explicitly permitted
+        if not user_id and not resume_id:
+            # Multi-tenant guard: refuse un-scoped dump across all users
             return []
 
         where_clause = None

@@ -40,7 +40,7 @@ export default function LaTeXStudioPage() {
   const router = useRouter();
   const applicationId = params?.id as string;
   const { selectedModel } = useModel();
-  const { requireGroqKey } = useAuth();
+  const { user, token, hasGroqKey, requireGroqKey, requireAuth } = useAuth();
 
   const [application, setApplication] = useState<Application | null>(null);
   const [latexCode, setLatexCode] = useState<string>("");
@@ -61,6 +61,11 @@ export default function LaTeXStudioPage() {
   const [customTemplate, setCustomTemplate] = useState<string>("");
 
   const loadData = async () => {
+    if (!token || !user) {
+      setError("Please sign in to view and tailor this application.");
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError("");
@@ -96,8 +101,10 @@ export default function LaTeXStudioPage() {
           setOutputMode("plaintext");
         }
       } else {
-        // Automatically trigger first synthesis with app-level preset
-        await handleGenerateTailored(currentPreset, currentCustom);
+        // Automatically trigger first synthesis only if user already configured their Groq key
+        if (hasGroqKey) {
+          await handleGenerateTailored(currentPreset, currentCustom);
+        }
       }
     } catch (err: any) {
       setError(err.message || "Failed to load resume tailoring studio.");
@@ -107,6 +114,7 @@ export default function LaTeXStudioPage() {
   };
 
   const handleGenerateTailored = async (presetId?: string, customTmpl?: string) => {
+    if (!requireAuth()) return;
     if (!requireGroqKey()) return;
     try {
       setIsTailoring(true);

@@ -65,12 +65,12 @@ export async function deleteResume(id: string): Promise<void> {
   }
 }
 
-export async function checkBackendHealth(): Promise<{ status: string; mock_rag: boolean }> {
+export async function checkBackendHealth(): Promise<{ status: string; rag?: string }> {
   try {
     const res = await fetch(`${API_BASE}/health`, { cache: "no-store" });
-    if (!res.ok) return { status: "offline", mock_rag: false };
+    if (!res.ok) return { status: "offline" };
     return res.json();
   } catch {
-    return { status: "offline", mock_rag: false };
+    return { status: "offline" };
   }
 }

@@ -31,7 +31,7 @@ def list_preferences(
 ):
     """Retrieve all stored user tailoring preferences and guidelines."""
     prefs = db.query(UserPreference).filter(
-        (UserPreference.user_id == current_user.id) | (UserPreference.user_id == None)
+        UserPreference.user_id == current_user.id
     ).all()
     return [
         PreferenceResponse(

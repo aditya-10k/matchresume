@@ -39,7 +39,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
   const pathname = usePathname();
   const { selectedModel, colorMode, toggleColorMode, isMounted } = useModel();
   const { user, groqKey, openAuthModal, openByokModal, logout } = useAuth();
-  const [health, setHealth] = useState<{ status: string; mock_rag: boolean } | null>(null);
+  const [health, setHealth] = useState<{ status: string; rag?: string } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isPrefsOpen, setIsPrefsOpen] = useState(false);
   const [prefsTab, setPrefsTab] = useState<"presets" | "rules">("presets");
@@ -47,7 +47,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
   useEffect(() => {
     checkBackendHealth()
       .then(setHealth)
-      .catch(() => setHealth({ status: "offline", mock_rag: false }));
+      .catch(() => setHealth({ status: "offline" }));
   }, []);
 
   const isLight = isMounted && colorMode === "light";
