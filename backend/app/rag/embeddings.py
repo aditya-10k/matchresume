@@ -3,6 +3,11 @@ from typing import List
 from chromadb.utils import embedding_functions
 from app.rag.interfaces import BaseEmbeddingModel
 
+import os
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+
 logger = logging.getLogger("embeddings")
 
 
@@ -23,12 +28,16 @@ class EmbeddingService(BaseEmbeddingModel):
             EmbeddingService._fn = embedding_functions.DefaultEmbeddingFunction()
 
     def embed_texts(self, texts: List[str]) -> List[List[float]]:
-        """Generates 384-d dense vector embeddings for a list of text strings."""
+        """Generates 384-d dense vector embeddings for a list of text strings with chunk batching."""
         if not texts:
             return []
-        raw_embeddings = EmbeddingService._fn(texts)
-        # Convert numpy arrays to standard python float lists
-        return [[float(val) for val in vec] for vec in raw_embeddings]
+        batch_size = 8
+        all_embeddings: List[List[float]] = []
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i : i + batch_size]
+            raw_embeddings = EmbeddingService._fn(batch)
+            all_embeddings.extend([[float(val) for val in vec] for vec in raw_embeddings])
+        return all_embeddings
 
     def embed_query(self, query: str) -> List[float]:
         """Generates a 384-d dense vector embedding for a single search query string."""

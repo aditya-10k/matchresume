@@ -7,8 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import User, Resume
 from app.api.deps import get_optional_user
-from app.rag.vector_store import get_vector_store
-from app.rag import backfill_existing_resumes
+from app.rag.chunking import chunk_resume
 
 logger = logging.getLogger("knowledge_api")
 
@@ -187,30 +186,46 @@ def get_knowledge_universe(
             nodes=[]
         )
 
-    store = get_vector_store()
-    raw_chunks = store.get_user_chunks(user_id=current_user.id)
-    if not raw_chunks:
-        backfill_existing_resumes(user_id=current_user.id)
-        raw_chunks = store.get_user_chunks(user_id=current_user.id)
     candidate_name = getattr(current_user, "name", None) or "Candidate"
-    
-    if not raw_chunks:
-        user_resume = db.query(Resume).filter(Resume.user_id == current_user.id).first()
-        if user_resume and user_resume.raw_text:
-            from app.rag import ingest_resume
-            meta = {
-                "source": user_resume.filename or f"{user_resume.name}.pdf",
-                "name": user_resume.name,
-                "user_id": current_user.id,
-                "resume_id": user_resume.id
-            }
-            try:
-                ingest_resume(user_resume.raw_text, user_resume.id, metadata=meta)
-                raw_chunks = store.get_user_chunks(user_id=current_user.id)
-            except Exception as e:
-                logger.error(f"Failed to ingest resume for knowledge universe: {e}")
-            if user_resume.name:
-                candidate_name = user_resume.name
+
+    # Fetch candidate's stored resumes directly from PostgreSQL (isolated & lightweight)
+    user_resumes = (
+        db.query(Resume)
+        .filter(Resume.user_id == current_user.id)
+        .order_by(Resume.created_at.desc())
+        .all()
+    )
+
+    if not user_resumes:
+        return KnowledgeUniverseResponse(
+            candidate_name=candidate_name,
+            total_nodes=0,
+            categories={},
+            nodes=[]
+        )
+
+    # Fast structural chunking from verified database text (instantaneous, 0 CPU / 0 vector overhead)
+    raw_chunks = []
+    for r in user_resumes:
+        if not r.raw_text or not r.raw_text.strip():
+            continue
+        if (candidate_name == "Candidate" or not candidate_name) and r.name:
+            candidate_name = r.name
+        meta = {
+            "source": r.filename or f"{r.name}.pdf",
+            "name": r.name,
+            "user_id": current_user.id,
+            "resume_id": r.id
+        }
+        chunks = chunk_resume(r.raw_text, r.id, metadata=meta)
+        for c in chunks:
+            raw_chunks.append({
+                "content": c.content,
+                "section": c.section,
+                "metadata": c.metadata,
+                "resume_id": r.id,
+                "user_id": current_user.id
+            })
 
     nodes = _extract_nodes_from_chunks(raw_chunks, candidate_name)
     
