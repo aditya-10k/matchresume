@@ -124,16 +124,21 @@ class ResumeRetriever(BaseRetriever):
             logger.warning("BM25 retrieval skipped: neither user_id nor resume_id provided (multi-tenant guard).")
             return []
 
-        db = SessionLocal()
+        resumes = []
         try:
-            query_filter = db.query(Resume)
-            if user_id:
-                query_filter = query_filter.filter(Resume.user_id == user_id)
-            if resume_id:
-                query_filter = query_filter.filter(Resume.id == resume_id)
-            resumes = query_filter.all()
-        finally:
-            db.close()
+            db = SessionLocal()
+            try:
+                query_filter = db.query(Resume)
+                if user_id:
+                    query_filter = query_filter.filter(Resume.user_id == user_id)
+                if resume_id:
+                    query_filter = query_filter.filter(Resume.id == resume_id)
+                resumes = query_filter.all()
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning(f"BM25 DB query failed ({e}); returning empty evidence chunks.")
+            return []
 
         if not resumes:
             return []
@@ -179,6 +184,8 @@ class ResumeRetriever(BaseRetriever):
                 similarity=round(float(sim), 3),
                 metadata=c.metadata
             ))
+
+        return results
 
     def retrieve_batch(
         self,
@@ -247,10 +254,11 @@ class ResumeRetriever(BaseRetriever):
         # 2. Fast BM25 fallback
         for q in clean_queries:
             res = self.retrieve(q, user_id=user_id, resume_id=resume_id, section=section, top_k=top_k)
-            for c in res:
-                if c.content not in seen_texts:
-                    seen_texts.add(c.content)
-                    all_results.append(c)
+            if res:
+                for c in res:
+                    if c.content not in seen_texts:
+                        seen_texts.add(c.content)
+                        all_results.append(c)
 
         all_results.sort(key=lambda x: x.similarity, reverse=True)
         return all_results

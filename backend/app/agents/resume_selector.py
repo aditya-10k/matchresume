@@ -37,20 +37,23 @@ Return JSON in this format:
         api_key: Optional[str] = None,
         model: Optional[str] = None
     ) -> RecommendedResume:
-        """Determines the strongest candidate resume for the given requirements."""
-        if not available_resumes:
+        resumes = available_resumes or []
+        if not resumes:
             return RecommendedResume(
                 resume_id="none",
                 resume_name="No Resume Available",
                 match_score=0,
                 strengths=[],
-                gaps=requirements.required_skills,
+                gaps=(requirements.required_skills or []) if requirements else [],
                 reason="No resumes found in the knowledge base. Please upload a resume first."
             )
 
+        req_skills = (requirements.required_skills if requirements else None) or []
+        pref_skills = (requirements.preferred_skills if requirements else None) or []
+
         # If JD has no extracted requirements, score is 0
-        if not requirements.required_skills and not requirements.preferred_skills:
-            first_resume = available_resumes[0]
+        if not req_skills and not pref_skills:
+            first_resume = resumes[0]
             return RecommendedResume(
                 resume_id=first_resume.id,
                 resume_name=first_resume.name,
@@ -65,9 +68,9 @@ Return JSON in this format:
             {
                 "id": r.id,
                 "name": r.name,
-                "text_excerpt": r.raw_text[:1200]
+                "text_excerpt": (r.raw_text or "")[:1200]
             }
-            for r in available_resumes
+            for r in resumes
         ]
 
         user_prompt = f"""
@@ -78,7 +81,7 @@ Available Candidate Resumes:
 {candidates_summary}
 
 Retrieved RAG Evidence Snippets:
-{[e.model_dump() for e in all_evidence[:6]]}
+{[e.model_dump() for e in (all_evidence or [])[:6]]}
 
 Instructions:
 Evaluate the candidate resumes against the job description requirements and retrieved evidence.

@@ -122,11 +122,11 @@ class ApplicationService:
         requirements = JDRequirements(**(application.jd_analysis or {}))
 
         evidence_chunks = retrieve_batch_context(
-            queries=requirements.required_skills[:4],
+            queries=(requirements.required_skills or [])[:4],
             user_id=user_id,
             resume_id=selected_resume.id,
             top_k=2
-        )
+        ) or []
 
         # Load user preferences (memory)
         pref_strings = []

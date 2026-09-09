@@ -73,16 +73,20 @@ def jd_analyzer_node(state: AgentState) -> Dict[str, Any]:
 def rag_retrieval_node(state: AgentState) -> Dict[str, Any]:
     """Node 3: Retrieves factual evidence chunks strictly for candidate's resumes."""
     logger.info("LangGraph [Node 3]: Fast batched RAG Retrieval querying context with user tenant scoping...")
-    requirements = state["requirements"]
+    requirements = state.get("requirements")
     user_id = state.get("user_id")
-    available_resumes = state.get("available_resumes", [])
+    available_resumes = state.get("available_resumes") or []
     allowed_resume_ids = {r.id for r in available_resumes if hasattr(r, "id")}
 
-    search_terms = requirements.required_skills + requirements.preferred_skills + [requirements.role or ""]
+    req_skills = (requirements.required_skills if requirements else None) or []
+    pref_skills = (requirements.preferred_skills if requirements else None) or []
+    role = (requirements.role if requirements else None) or ""
+
+    search_terms = req_skills + pref_skills + [role]
     clean_terms = [t.strip() for t in search_terms if t and t.strip()][:5]
 
     # Batched vector retrieval: single forward pass replaces 5 sequential inference loops
-    all_chunks = retrieve_batch_context(queries=clean_terms, user_id=user_id, top_k=3)
+    all_chunks = retrieve_batch_context(queries=clean_terms, user_id=user_id, top_k=3) or []
     
     collected_evidence: List[EvidenceChunk] = []
     seen_content = set()
