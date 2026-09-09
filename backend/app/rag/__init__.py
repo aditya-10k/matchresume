@@ -93,6 +93,9 @@ def backfill_existing_resumes(user_id: Optional[str] = None) -> int:
     return backfilled_count
 
 
+from app.rag.retriever import retrieve_context as real_retrieve_context, retrieve_batch_context as real_retrieve_batch_context
+
+
 def retrieve_context(
     query: str,
     user_id: Optional[str] = None,
@@ -105,3 +108,16 @@ def retrieve_context(
     Returns authentic evidence chunks from the user's verified uploaded resumes.
     """
     return real_retrieve_context(query=query, user_id=user_id, resume_id=resume_id, section=section, top_k=top_k)
+
+
+def retrieve_batch_context(
+    queries: List[str],
+    user_id: Optional[str] = None,
+    resume_id: Optional[str] = None,
+    section: Optional[str] = None,
+    top_k: int = 3
+) -> List[EvidenceChunk]:
+    """
+    High-level batched retrieval hook used by multi-term Agent nodes.
+    """
+    return real_retrieve_batch_context(queries=queries, user_id=user_id, resume_id=resume_id, section=section, top_k=top_k)

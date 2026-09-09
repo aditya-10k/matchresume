@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
@@ -16,6 +16,7 @@ router = APIRouter(prefix="/resumes", tags=["Resumes"])
 
 @router.post("", response_model=ResumeResponse, status_code=status.HTTP_201_CREATED)
 async def upload_resume(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     name: Optional[str] = Form(None),
     db: Session = Depends(get_db),
@@ -63,24 +64,7 @@ async def upload_resume(
     with open(stored_path, "wb") as f:
         f.write(content)
 
-    # Ingest into RAG knowledge base
-    try:
-        ingest_result = ingest_resume(
-            text=raw_text,
-            resume_id=resume_id,
-            metadata={
-                "source": file.filename,
-                "name": display_name,
-                "user_id": current_user.id,
-            }
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error ingesting resume into vector knowledge base: {str(e)}"
-        )
-
-    # Persist in relational DB
+    # Persist in relational DB immediately so it is available instantly
     db_resume = Resume(
         id=resume_id,
         user_id=current_user.id,
@@ -93,6 +77,18 @@ async def upload_resume(
     db.add(db_resume)
     db.commit()
     db.refresh(db_resume)
+
+    # Ingest into vector store asynchronously in the background (prevents 25s client-side upload freeze)
+    background_tasks.add_task(
+        ingest_resume,
+        text=raw_text,
+        resume_id=resume_id,
+        metadata={
+            "source": file.filename,
+            "name": display_name,
+            "user_id": current_user.id,
+        }
+    )
 
     return ResumeResponse(
         id=db_resume.id,

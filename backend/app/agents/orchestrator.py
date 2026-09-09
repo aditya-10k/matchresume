@@ -10,7 +10,7 @@ from app.agents.jd_analyzer import jd_analyzer
 from app.agents.resume_selector import resume_selector
 from app.agents.resume_writer import resume_writer, TailoredResumeOutput
 from app.agents.validator import validator_agent, ValidationReport
-from app.rag import retrieve_context
+from app.rag import retrieve_context, retrieve_batch_context
 
 logger = logging.getLogger("orchestrator")
 
@@ -72,27 +72,27 @@ def jd_analyzer_node(state: AgentState) -> Dict[str, Any]:
 
 def rag_retrieval_node(state: AgentState) -> Dict[str, Any]:
     """Node 3: Retrieves factual evidence chunks strictly for candidate's resumes."""
-    logger.info("LangGraph [Node 3]: RAG Retrieval querying context with user tenant scoping...")
+    logger.info("LangGraph [Node 3]: Fast batched RAG Retrieval querying context with user tenant scoping...")
     requirements = state["requirements"]
     user_id = state.get("user_id")
     available_resumes = state.get("available_resumes", [])
     allowed_resume_ids = {r.id for r in available_resumes if hasattr(r, "id")}
+
+    search_terms = requirements.required_skills + requirements.preferred_skills + [requirements.role or ""]
+    clean_terms = [t.strip() for t in search_terms if t and t.strip()][:5]
+
+    # Batched vector retrieval: single forward pass replaces 5 sequential inference loops
+    all_chunks = retrieve_batch_context(queries=clean_terms, user_id=user_id, top_k=3)
     
     collected_evidence: List[EvidenceChunk] = []
     seen_content = set()
-
-    search_terms = requirements.required_skills + requirements.preferred_skills + [requirements.role or ""]
-    for term in search_terms[:5]:
-        if not term:
+    for chunk in all_chunks:
+        # Multi-tenant defense in depth: ensure chunk belongs to allowed resume IDs if provided
+        if allowed_resume_ids and hasattr(chunk, "resume_id") and chunk.resume_id not in allowed_resume_ids:
             continue
-        chunks = retrieve_context(query=term, user_id=user_id, top_k=3)
-        for chunk in chunks:
-            # Multi-tenant defense in depth: ensure chunk belongs to allowed resume IDs if provided
-            if allowed_resume_ids and hasattr(chunk, "resume_id") and chunk.resume_id not in allowed_resume_ids:
-                continue
-            if chunk.content not in seen_content:
-                seen_content.add(chunk.content)
-                collected_evidence.append(chunk)
+        if chunk.content not in seen_content:
+            seen_content.add(chunk.content)
+            collected_evidence.append(chunk)
 
     return {"evidence_chunks": collected_evidence}
 

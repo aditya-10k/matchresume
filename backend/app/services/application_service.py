@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.models import Application, Resume, GeneratedResume, UserPreference
 from app.schemas.application import ApplicationCreate, AnalysisResponse, JDRequirements
 from app.agents.orchestrator import orchestrator
-from app.rag import retrieve_context
+from app.rag import retrieve_context, retrieve_batch_context
 
 
 class ApplicationService:
@@ -121,10 +121,12 @@ class ApplicationService:
 
         requirements = JDRequirements(**(application.jd_analysis or {}))
 
-        evidence_chunks = []
-        for term in requirements.required_skills[:4]:
-            chunks = retrieve_context(query=term, user_id=user_id, resume_id=selected_resume.id, top_k=2)
-            evidence_chunks.extend(chunks)
+        evidence_chunks = retrieve_batch_context(
+            queries=requirements.required_skills[:4],
+            user_id=user_id,
+            resume_id=selected_resume.id,
+            top_k=2
+        )
 
         # Load user preferences (memory)
         pref_strings = []

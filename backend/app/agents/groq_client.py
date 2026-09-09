@@ -39,12 +39,10 @@ class GroqClient:
                 "Please configure your Groq API key in Settings (get a free key at console.groq.com/keys)."
             )
 
-        # Map prompt-guard and placeholder models to standard Groq generation models
+        # Use the requested model directly; map prompt-guard classifier to llama-3.1-8b-instant for chat
         effective_model = self.model
         if "prompt-guard" in self.model.lower():
-            effective_model = "llama-3.3-70b-versatile"
-        elif "gpt-oss" in self.model.lower():
-            effective_model = "llama-3.3-70b-versatile"
+            effective_model = "llama-3.1-8b-instant"
 
         # Reasoning models (e.g. Qwen, DeepSeek) output <think> tokens which violate Groq proxy's json_object validator
         is_reasoning_model = any(m in effective_model.lower() for m in ["qwen", "deepseek", "think"])
@@ -107,12 +105,10 @@ class GroqClient:
                 "Please configure your Groq API key in Settings (get a free key at console.groq.com/keys)."
             )
 
-        # Map prompt-guard and placeholder models to standard Groq generation models
+        # Use the requested model directly; map prompt-guard classifier to llama-3.1-8b-instant for chat
         effective_model = self.model
         if "prompt-guard" in self.model.lower():
-            effective_model = "llama-3.3-70b-versatile"
-        elif "gpt-oss" in self.model.lower():
-            effective_model = "llama-3.3-70b-versatile"
+            effective_model = "llama-3.1-8b-instant"
 
         is_reasoning_model = any(m in effective_model.lower() for m in ["qwen", "deepseek", "think"])
         logger.info(f"GroqClient.generate_text dispatching to model '{effective_model}' (requested='{self.model}', max_tokens={max_tokens})")
