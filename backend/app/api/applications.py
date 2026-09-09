@@ -171,6 +171,9 @@ def get_tailored_resume(
     current_user: User = Depends(get_current_user)
 ):
     """Retrieve the latest tailored LaTeX code and summary for this application."""
+    app = application_service.get_application(db, application_id, user_id=current_user.id)
+    if not app:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found.")
     data = application_service.get_latest_tailored_resume(db, application_id)
     if not data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No tailored resume generated yet.")

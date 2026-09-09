@@ -139,9 +139,13 @@ def list_resumes(
 
 
 @router.get("/{resume_id}", response_model=ResumeDetailResponse)
-def get_resume(resume_id: str, db: Session = Depends(get_db)):
+def get_resume(
+    resume_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Retrieve details and raw text of a specific resume."""
-    resume = db.query(Resume).filter(Resume.id == resume_id).first()
+    resume = db.query(Resume).filter(Resume.id == resume_id, Resume.user_id == current_user.id).first()
     if not resume:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
     
@@ -157,9 +161,13 @@ def get_resume(resume_id: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_resume(resume_id: str, db: Session = Depends(get_db)):
+def delete_resume(
+    resume_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Delete a resume by ID."""
-    resume = db.query(Resume).filter(Resume.id == resume_id).first()
+    resume = db.query(Resume).filter(Resume.id == resume_id, Resume.user_id == current_user.id).first()
     if not resume:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
     

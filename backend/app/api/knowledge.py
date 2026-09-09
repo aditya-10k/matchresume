@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import User, Resume
-from app.api.auth import get_current_user
+from app.api.deps import get_optional_user
 from app.rag.vector_store import get_vector_store
 from app.rag import backfill_existing_resumes
 
@@ -177,8 +177,16 @@ def _extract_nodes_from_chunks(chunks: List[Dict[str, Any]], candidate_name: str
 @router.get("", response_model=KnowledgeUniverseResponse)
 def get_knowledge_universe(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
+    if not current_user:
+        return KnowledgeUniverseResponse(
+            candidate_name="Guest",
+            total_nodes=0,
+            categories={},
+            nodes=[]
+        )
+
     store = get_vector_store()
     if store.collection.count() == 0:
         backfill_existing_resumes()

@@ -19,16 +19,11 @@ def get_current_user(
 ) -> User:
     """Extracts and validates the current authenticated user from the Bearer JWT token."""
     if not auth_header or not auth_header.credentials:
-        # Check if there is an existing user or create/use default user for seamless local dev fallback
-        default_user = db.query(User).first()
-        if default_user:
-            return default_user
-        # Create initial default user
-        new_user = User(email="user@matchresume.ai", name="Demo User")
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-        return new_user
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required. Please sign in to access your account.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     token = auth_header.credentials
     payload = decode_access_token(token)
@@ -48,6 +43,24 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
+
+
+def get_optional_user(
+    auth_header: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """Extracts the authenticated user if a valid Bearer token is provided; returns None otherwise."""
+    if not auth_header or not auth_header.credentials:
+        return None
+    try:
+        token = auth_header.credentials
+        payload = decode_access_token(token)
+        if not payload or "sub" not in payload:
+            return None
+        user_id = payload["sub"]
+        return db.query(User).filter(User.id == user_id, User.is_active == True).first()
+    except Exception:
+        return None
 
 
 def get_resolved_groq_key(

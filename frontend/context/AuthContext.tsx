@@ -38,6 +38,8 @@ interface AuthContextType {
   hasGroqKey: boolean;
   /** Call before any LLM action. Returns true if key exists, otherwise opens BYOK modal and returns false. */
   requireGroqKey: () => boolean;
+  /** Call before actions requiring account authentication. Returns true if logged in, otherwise opens Auth modal and returns false. */
+  requireAuth: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -146,6 +148,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false;
   };
 
+  /** Guard for authenticated actions — opens Auth modal and returns false if not logged in */
+  const requireAuth = (): boolean => {
+    if (token && user) return true;
+    setIsAuthModalOpen(true);
+    return false;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -167,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         checkGroqKeyValid,
         hasGroqKey,
         requireGroqKey,
+        requireAuth,
       }}
     >
       {children}

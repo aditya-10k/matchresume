@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Plus, Search, RefreshCw, AlertCircle, Sparkles, Database } from "lucide-react";
+import { FileText, Plus, Search, RefreshCw, AlertCircle, Sparkles, Database, LogIn } from "lucide-react";
 import { fetchResumes, deleteResume } from "@/lib/api/resumes";
 import { Resume } from "@/lib/types";
 import { useModel } from "@/context/ModelContext";
+import { useAuth } from "@/context/AuthContext";
 import ResumeCard from "@/components/resumes/ResumeCard";
 import UploadDropzone from "@/components/resumes/UploadDropzone";
 
 export default function ResumesPage() {
   const { selectedModel } = useModel();
+  const { user, token, openAuthModal, loading: authLoading } = useAuth();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -18,6 +20,11 @@ export default function ResumesPage() {
   const [showUploader, setShowUploader] = useState(false);
 
   const loadResumes = async () => {
+    if (!token || !user) {
+      setLoading(false);
+      setResumes([]);
+      return;
+    }
     try {
       setLoading(true);
       setError("");
@@ -31,8 +38,10 @@ export default function ResumesPage() {
   };
 
   useEffect(() => {
-    loadResumes();
-  }, []);
+    if (!authLoading) {
+      loadResumes();
+    }
+  }, [token, user, authLoading]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -100,7 +109,13 @@ export default function ResumesPage() {
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </button>
           <button
-            onClick={() => setShowUploader((prev) => !prev)}
+            onClick={() => {
+              if (!token || !user) {
+                openAuthModal();
+                return;
+              }
+              setShowUploader((prev) => !prev);
+            }}
             className="flex items-center gap-2 rounded-full px-5 py-2 text-xs font-semibold text-white shadow-lg hover:brightness-110 active:scale-95 transition-all"
             style={{
               background: `linear-gradient(135deg, ${selectedModel.colors.primary} 0%, ${selectedModel.colors.secondary} 100%)`,
@@ -194,7 +209,42 @@ export default function ResumesPage() {
           </div>
         )}
 
-        {!loading && !error && resumes.length === 0 && !showUploader && (
+        {!loading && !error && (!token || !user) && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center rounded-3xl border bg-white/60 dark:bg-black/30 p-12 text-center backdrop-blur-xl"
+            style={{ borderColor: `${selectedModel.colors.primary}25` }}
+          >
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-3xl border shadow-inner"
+              style={{
+                background: `${selectedModel.colors.primary}18`,
+                borderColor: `${selectedModel.colors.primary}35`,
+                color: selectedModel.colors.primary,
+              }}
+            >
+              <LogIn className="h-8 w-8" />
+            </div>
+            <h3 className="mt-4 text-base font-semibold text-zinc-900 dark:text-white">Sign In to access your Career Vault</h3>
+            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400 max-w-sm">
+              Your resumes, vector embeddings, and tailored applications are strictly private to your account. Sign in or register to upload and manage resumes.
+            </p>
+            <button
+              onClick={openAuthModal}
+              className="mt-6 flex items-center gap-2 rounded-full px-6 py-2.5 text-xs font-semibold text-white shadow-lg hover:brightness-110 active:scale-95 transition-all"
+              style={{
+                background: `linear-gradient(135deg, ${selectedModel.colors.primary} 0%, ${selectedModel.colors.secondary} 100%)`,
+                boxShadow: `0 4px 15px ${selectedModel.colors.primary}40`,
+              }}
+            >
+              <LogIn className="h-4 w-4" />
+              <span>Sign In / Register</span>
+            </button>
+          </motion.div>
+        )}
+
+        {!loading && !error && token && user && resumes.length === 0 && !showUploader && (
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}

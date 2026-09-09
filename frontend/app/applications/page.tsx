@@ -18,9 +18,11 @@ import {
 import { listApplications, deleteApplication } from "@/lib/api/applications";
 import { Application } from "@/lib/types";
 import { useModel } from "@/context/ModelContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ApplicationsPage() {
   const { selectedModel } = useModel();
+  const { user, token, openAuthModal, loading: authLoading } = useAuth();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -28,6 +30,11 @@ export default function ApplicationsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadApplications = async () => {
+    if (!token || !user) {
+      setLoading(false);
+      setApplications([]);
+      return;
+    }
     try {
       setLoading(true);
       setError("");
@@ -41,8 +48,10 @@ export default function ApplicationsPage() {
   };
 
   useEffect(() => {
-    loadApplications();
-  }, []);
+    if (!authLoading) {
+      loadApplications();
+    }
+  }, [token, user, authLoading]);
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -137,6 +146,25 @@ export default function ApplicationsPage() {
         <div className="py-24 flex flex-col items-center justify-center text-center">
           <Loader2 className="h-8 w-8 animate-spin text-orange-500 mb-3" />
           <p className="text-xs font-medium text-zinc-500">Loading your applications...</p>
+        </div>
+      ) : (!token || !user) ? (
+        /* Unauthenticated state */
+        <div className="py-20 flex flex-col items-center justify-center text-center rounded-2xl border border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-zinc-900/30 p-8">
+          <div className="w-14 h-14 rounded-2xl bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center text-orange-500 mb-4">
+            <Briefcase className="w-7 h-7" />
+          </div>
+          <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-1">
+            Sign In to View Your Applications
+          </h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-sm mb-6 leading-relaxed">
+            Your tailored resumes, match scores, and application drafts are saved securely to your account. Sign in or register to get started.
+          </p>
+          <button
+            onClick={openAuthModal}
+            className="inline-flex items-center gap-2 rounded-xl bg-orange-600 hover:bg-orange-500 px-5 py-2.5 text-xs font-semibold text-white shadow-md transition hover:scale-105"
+          >
+            <span>Sign In / Register</span>
+          </button>
         </div>
       ) : filtered.length === 0 ? (
         /* Empty state */

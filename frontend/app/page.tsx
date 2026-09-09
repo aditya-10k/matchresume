@@ -19,7 +19,7 @@ import CareerIntelligenceModal from "@/components/studio/CareerIntelligenceModal
 export default function DashboardPage() {
   const router = useRouter();
   const { selectedModel } = useModel();
-  const { requireGroqKey } = useAuth();
+  const { requireGroqKey, requireAuth } = useAuth();
   const [promptInput, setPromptInput] = useState("");
   const [isOrbActive, setIsOrbActive] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -29,6 +29,7 @@ export default function DashboardPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleStartMatch = async (initialText?: string) => {
+    if (!requireAuth()) return;
     if (!requireGroqKey()) return;
     const textToPass = (initialText || promptInput).trim();
     if (!textToPass) {
