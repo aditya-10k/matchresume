@@ -36,6 +36,7 @@ class User(Base):
     resumes = relationship("Resume", back_populates="user", cascade="all, delete-orphan")
     applications = relationship("Application", back_populates="user", cascade="all, delete-orphan")
     preferences = relationship("UserPreference", back_populates="user", cascade="all, delete-orphan")
+    roadmap_sessions = relationship("RoadmapSession", back_populates="user", cascade="all, delete-orphan")
 
 
 class Resume(Base):
@@ -111,3 +112,39 @@ class UserPreference(Base):
     updated_at = Column(DateTime, default=now_utc, onupdate=now_utc)
 
     user = relationship("User", back_populates="preferences")
+
+
+class RoadmapSession(Base):
+    __tablename__ = "roadmap_sessions"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
+    title = Column(String(255), nullable=False, default="Career Roadmap")
+    target_role = Column(String(255), nullable=True)
+    company = Column(String(255), nullable=True)
+    jd_text = Column(Text, nullable=False)
+    jd_analysis = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=now_utc)
+    updated_at = Column(DateTime, default=now_utc, onupdate=now_utc)
+
+    user = relationship("User", back_populates="roadmap_sessions")
+    messages = relationship(
+        "RoadmapMessage",
+        back_populates="session",
+        cascade="all, delete-orphan",
+        order_by="RoadmapMessage.created_at",
+    )
+
+
+class RoadmapMessage(Base):
+    __tablename__ = "roadmap_messages"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    session_id = Column(String(36), ForeignKey("roadmap_sessions.id"), nullable=False, index=True)
+    role = Column(String(50), nullable=False)  # "user", "assistant", "system"
+    content = Column(Text, nullable=False)
+    provider = Column(String(50), nullable=True, default="groq")  # "groq", "openrouter", "system"
+    metadata_json = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=now_utc)
+
+    session = relationship("RoadmapSession", back_populates="messages")

@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "qwen/qwen3.6-27b"
 
+    # LLM (OpenRouter) - Secondary / Failover Provider to combat rate limiting (429)
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "meta-llama/llama-3.3-70b-instruct"
+
     # Security & Auth
     JWT_SECRET_KEY: str = "matchresume-super-secret-jwt-key-change-in-prod-2026"
     JWT_ALGORITHM: str = "HS256"

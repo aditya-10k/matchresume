@@ -22,6 +22,7 @@ import {
   Sliders,
   Layout,
   Orbit,
+  Compass,
 } from "lucide-react";
 import { checkBackendHealth } from "@/lib/api/resumes";
 import { useModel } from "@/context/ModelContext";
@@ -55,6 +56,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
   const navLinks = [
     { href: "/", label: "Studio", icon: Layers },
     { href: "/knowledge", label: "Knowledge Universe", icon: Orbit },
+    { href: "/roadmap", label: "Project Roadmap", icon: Compass },
     { href: "/resumes", label: "Resume Vault", icon: FileText },
     { href: "/applications", label: "Applications", icon: Briefcase },
     { href: "/applications/new", label: "New Tailor", icon: Plus },
