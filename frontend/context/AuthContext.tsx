@@ -7,6 +7,8 @@ import {
   setStoredToken,
   getStoredGroqKey,
   setStoredGroqKey,
+  getStoredOpenRouterKey,
+  setStoredOpenRouterKey,
 } from "@/lib/api/client";
 import {
   loginUser,
@@ -15,12 +17,14 @@ import {
   saveGroqKey,
   deleteGroqKey,
   validateGroqKey,
+  validateOpenRouterKey,
 } from "@/lib/api/auth";
 
 interface AuthContextType {
   user: UserProfile | null;
   token: string | null;
   groqKey: string | null;
+  openRouterKey: string | null;
   loading: boolean;
   isAuthModalOpen: boolean;
   isByokModalOpen: boolean;
@@ -34,8 +38,12 @@ interface AuthContextType {
   setGroqApiKey: (key: string, saveToAccount?: boolean) => Promise<void>;
   clearGroqApiKey: () => Promise<void>;
   checkGroqKeyValid: (key: string) => Promise<{ valid: boolean; message: string }>;
-  /** True if a Groq key is available (localStorage or saved account key) */
+  setOpenRouterApiKey: (key: string) => Promise<void>;
+  clearOpenRouterApiKey: () => Promise<void>;
+  checkOpenRouterKeyValid: (key: string) => Promise<{ valid: boolean; message: string }>;
+  /** True if Groq or OpenRouter key is available */
   hasGroqKey: boolean;
+  hasOpenRouterKey: boolean;
   /** Call before any LLM action. Returns true if key exists, otherwise opens BYOK modal and returns false. */
   requireGroqKey: () => boolean;
   /** Call before actions requiring account authentication. Returns true if logged in, otherwise opens Auth modal and returns false. */
@@ -48,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [groqKey, setGroqKey] = useState<string | null>(null);
+  const [openRouterKey, setOpenRouterKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isByokModalOpen, setIsByokModalOpen] = useState(false);
@@ -56,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const storedToken = getStoredToken();
     const storedKey = getStoredGroqKey();
+    const storedOpenRouter = getStoredOpenRouterKey();
     if (storedToken) {
       setToken(storedToken);
       getMe()
@@ -73,6 +83,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (storedKey) {
       setGroqKey(storedKey);
+    }
+    if (storedOpenRouter) {
+      setOpenRouterKey(storedOpenRouter);
     }
   }, []);
 
@@ -138,8 +151,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return await validateGroqKey(key);
   };
 
-  /** True when a key is available from localStorage or the user's saved account key */
-  const hasGroqKey = !!(groqKey || user?.has_groq_key);
+  const setOpenRouterApiKey = async (key: string) => {
+    setStoredOpenRouterKey(key);
+    setOpenRouterKey(key);
+  };
+
+  const clearOpenRouterApiKey = async () => {
+    setStoredOpenRouterKey(null);
+    setOpenRouterKey(null);
+  };
+
+  const checkOpenRouterKeyValid = async (key: string) => {
+    return await validateOpenRouterKey(key);
+  };
+
+  /** True when OpenRouter key is available */
+  const hasOpenRouterKey = !!openRouterKey;
+
+  /** True when any valid LLM key is available (Groq or OpenRouter) */
+  const hasGroqKey = !!(groqKey || openRouterKey || user?.has_groq_key);
 
   /** Guard for LLM actions — opens BYOK modal and returns false if no key */
   const requireGroqKey = (): boolean => {
@@ -161,6 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         token,
         groqKey,
+        openRouterKey,
         loading,
         isAuthModalOpen,
         isByokModalOpen,
@@ -174,7 +205,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setGroqApiKey,
         clearGroqApiKey,
         checkGroqKeyValid,
+        setOpenRouterApiKey,
+        clearOpenRouterApiKey,
+        checkOpenRouterKeyValid,
         hasGroqKey,
+        hasOpenRouterKey,
         requireGroqKey,
         requireAuth,
       }}

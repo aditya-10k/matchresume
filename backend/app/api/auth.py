@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from groq import Groq
+import httpx
 
 from app.db.session import get_db
 from app.db.models import User
@@ -14,6 +15,7 @@ from app.schemas.auth import (
     SaveKeyRequest,
     ValidateKeyRequest,
     ValidateKeyResponse,
+    ValidateOpenRouterKeyRequest,
 )
 from app.core.security import (
     hash_password,
@@ -179,3 +181,33 @@ def validate_groq_key(data: ValidateKeyRequest):
             is_valid=False,
             message=f"Key rejected by Groq: {str(e)}"
         )
+
+
+@router.post("/validate-openrouter-key", response_model=ValidateKeyResponse)
+def validate_openrouter_key(data: ValidateOpenRouterKeyRequest):
+    """Test a candidate OpenRouter API key directly against OpenRouter API to verify validity."""
+    clean_key = data.openrouter_api_key.strip()
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            resp = client.get(
+                "https://openrouter.ai/api/v1/auth/key",
+                headers={"Authorization": f"Bearer {clean_key}"}
+            )
+            if resp.status_code == 200:
+                key_data = resp.json().get("data", {})
+                label = key_data.get("label", "Active")
+                return ValidateKeyResponse(
+                    is_valid=True,
+                    message=f"OpenRouter API key is valid ({label}).",
+                )
+            else:
+                return ValidateKeyResponse(
+                    is_valid=False,
+                    message=f"OpenRouter key rejected (HTTP {resp.status_code})."
+                )
+    except Exception as e:
+        return ValidateKeyResponse(
+            is_valid=False,
+            message=f"OpenRouter connection failed: {str(e)}"
+        )
+

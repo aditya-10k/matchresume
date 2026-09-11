@@ -28,6 +28,20 @@ export function setStoredGroqKey(key: string | null) {
   }
 }
 
+export function getStoredOpenRouterKey(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("matchresume_openrouter_key");
+}
+
+export function setStoredOpenRouterKey(key: string | null) {
+  if (typeof window === "undefined") return;
+  if (key) {
+    localStorage.setItem("matchresume_openrouter_key", key);
+  } else {
+    localStorage.removeItem("matchresume_openrouter_key");
+  }
+}
+
 export function getStoredModel(): string {
   if (typeof window === "undefined") return "qwen/qwen3.6-27b";
   return localStorage.getItem("matchresume_selected_model") || "qwen/qwen3.6-27b";
@@ -47,6 +61,11 @@ export function getApiHeaders(additionalHeaders: Record<string, string> = {}): R
   const groqKey = getStoredGroqKey();
   if (groqKey) {
     headers["x-groq-api-key"] = groqKey;
+  }
+
+  const openRouterKey = getStoredOpenRouterKey();
+  if (openRouterKey) {
+    headers["x-openrouter-api-key"] = openRouterKey;
   }
 
   const model = getStoredModel();

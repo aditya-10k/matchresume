@@ -42,3 +42,8 @@ class ValidateKeyResponse(BaseModel):
     is_valid: bool
     message: str
     models_available: Optional[int] = None
+
+
+class ValidateOpenRouterKeyRequest(BaseModel):
+    openrouter_api_key: str = Field(..., min_length=10, description="OpenRouter API key to test")
+

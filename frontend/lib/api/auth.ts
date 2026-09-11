@@ -93,3 +93,23 @@ export async function validateGroqKey(groq_api_key: string): Promise<{
   }
   return data;
 }
+
+export async function validateOpenRouterKey(openrouter_api_key: string): Promise<{
+  valid: boolean;
+  message: string;
+}> {
+  const res = await fetch(`${API_BASE}/auth/validate-openrouter-key`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ openrouter_api_key }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.detail || "Failed to validate OpenRouter key");
+  }
+  return {
+    valid: data.is_valid,
+    message: data.message,
+  };
+}
+

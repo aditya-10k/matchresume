@@ -39,7 +39,8 @@ interface SidebarProps {
 export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const { selectedModel, colorMode, toggleColorMode, isMounted } = useModel();
-  const { user, groqKey, openAuthModal, openByokModal, logout } = useAuth();
+  const { user, groqKey, openRouterKey, openAuthModal, openByokModal, logout } = useAuth();
+  const hasAnyKey = Boolean(groqKey || openRouterKey || user?.has_groq_key);
   const [health, setHealth] = useState<{ status: string; rag?: string } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isPrefsOpen, setIsPrefsOpen] = useState(false);
@@ -196,9 +197,9 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
                   >
                     <div className="flex items-center gap-2">
                       <Key className="w-3.5 h-3.5 text-orange-500" />
-                      <span>Groq API Key (BYOK)</span>
+                      <span>API Keys (BYOK)</span>
                     </div>
-                    <span className={`h-2 w-2 rounded-full ${groqKey || user?.has_groq_key ? "bg-emerald-500" : "bg-amber-500 animate-pulse"}`} />
+                    <span className={`h-2 w-2 rounded-full ${hasAnyKey ? "bg-emerald-500" : "bg-amber-500 animate-pulse"}`} />
                   </button>
 
                   <button
@@ -400,19 +401,19 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
                 <div className="flex items-center gap-2 min-w-0">
                   <Key className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                   <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 truncate">
-                    Groq Key (BYOK)
+                    API Keys (BYOK)
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span
                     className={`h-2 w-2 rounded-full ${
-                      groqKey || user?.has_groq_key
+                      hasAnyKey
                         ? "bg-emerald-500 shadow-sm shadow-emerald-500/50"
                         : "bg-amber-500 animate-pulse"
                     }`}
                   />
                   <span className="text-[10px] font-medium text-zinc-500">
-                    {groqKey || user?.has_groq_key ? "Active" : "Required"}
+                    {hasAnyKey ? "Active" : "Required"}
                   </span>
                 </div>
               </button>
@@ -488,7 +489,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps)
                 type="button"
                 onClick={openByokModal}
                 className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-200 dark:border-white/10 text-orange-500 hover:bg-orange-500/10 transition"
-                title={`BYOK Key: ${groqKey || user?.has_groq_key ? "Active" : "Required"}`}
+                title={`API Keys: ${hasAnyKey ? "Active" : "Required"}`}
               >
                 <Key className="h-4 w-4" />
               </button>

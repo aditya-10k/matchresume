@@ -12,14 +12,7 @@ import {
   Loader2,
   Check,
   Copy,
-  Briefcase,
-  Layers,
-  ArrowRight,
-  RefreshCw,
-  Cpu,
   ChevronRight,
-  ShieldCheck,
-  MessageSquare,
   AlertCircle,
 } from "lucide-react";
 import {
@@ -47,15 +40,15 @@ We are looking for a Senior AI Systems Engineer to architect and build our high-
 
 Responsibilities:
 - Design distributed RAG pipelines capable of sub-150ms semantic search over 10M+ enterprise documents.
-- Implement robust vector databases (pgvector, ChromaDB, Qdrant) with hybrid BM25 lexical reranking.
+- Implement robust vector databases with hybrid BM25 lexical reranking.
 - Optimize multi-tenant isolation, caching tiers with Redis, and asynchronous queue processing with Celery/Kafka.
-- Build resilient agentic workflows using LangGraph/CrewAI with self-correction and guardrails.
-- Ensure 99.9% uptime with OpenTelemetry tracing, structured logging, and automated eval benchmarks.
+- Build resilient agentic workflows with self-correction and guardrails.
+- Ensure 99.9% uptime with telemetry tracing, structured logging, and automated eval benchmarks.
 
 Qualifications:
 - 3+ years experience building production software with Python, FastAPI, and TypeScript/Next.js.
 - Strong knowledge of embedding models, chunking strategies, and token budget management.
-- Hands-on experience with PostgreSQL, Docker, Kubernetes, and cloud deployments.`,
+- Hands-on experience with relational databases, Docker, and cloud deployments.`,
   },
   {
     title: "Backend Platform Engineer",
@@ -66,14 +59,14 @@ About the Role:
 Our Core Infrastructure team powers payment and telemetry pipelines processing millions of events per minute.
 
 Responsibilities:
-- Build high-concurrency microservices in Go or Python with strict SLAs and fault tolerance.
-- Implement idempotency keys, distributed locks with Redis/etcd, and event-driven architecture using Apache Kafka.
-- Design database schemas in PostgreSQL with partitioning, connection pooling (PgBouncer), and zero-downtime migrations.
+- Build high-concurrency microservices with strict SLAs and fault tolerance.
+- Implement idempotency keys, distributed locks, and event-driven architecture using Apache Kafka.
+- Design database schemas with partitioning, connection pooling, and zero-downtime migrations.
 - Develop rate-limiting algorithms (token bucket / sliding window) protecting core APIs from traffic spikes.
 
 Qualifications:
 - Strong CS fundamentals in concurrency, distributed systems, and ACID guarantees.
-- Hands-on proficiency with relational databases, Redis, Docker, and microservice architectures.`,
+- Hands-on proficiency with relational databases, caching, Docker, and microservice architectures.`,
   },
   {
     title: "Staff Full-Stack Engineer",
@@ -85,8 +78,8 @@ We are seeking a Staff Engineer to lead the architecture of our real-time collab
 
 Responsibilities:
 - Architect snappy, offline-first web experiences with Next.js App Router, React Server Components, and Tailwind CSS.
-- Build WebSocket/SSE streaming servers with Node.js or FastAPI for real-time generative AI interactions.
-- Implement end-to-end security: JWT authentication, BYOK encryption, and rate-limiting proxies.
+- Build real-time streaming servers for responsive generative AI interactions.
+- Implement end-to-end security, authentication, and high-performance API proxies.
 - Drive engineering excellence, automated CI/CD pipelines, and high-performance frontend state management.`,
   },
 ];
@@ -144,7 +137,6 @@ export default function RoadmapPage() {
       const data = await getRoadmapSessions();
       setSessions(data);
       if (data.length > 0 && !activeSession) {
-        // Load the most recent session
         selectSession(data[0].id);
       }
     } catch (err: any) {
@@ -190,7 +182,6 @@ export default function RoadmapPage() {
       setActiveSession(newSession);
       setJdInput("");
       setTitleInput("");
-      // Refresh sidebar sessions list
       const updated = await getRoadmapSessions();
       setSessions(updated);
     } catch (err: any) {
@@ -214,7 +205,6 @@ export default function RoadmapPage() {
     setSendingMessage(true);
     setError(null);
 
-    // Optimistic user message
     const tempUserMsg: RoadmapMessage = {
       id: `temp_${Date.now()}`,
       session_id: activeSession.id,
@@ -274,7 +264,6 @@ export default function RoadmapPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Format assistant message into clean visual cards
   const renderCleanMessage = (content: string) => {
     const sanitized = stripAsterisks(content);
     const lines = sanitized.split("\n");
@@ -287,7 +276,6 @@ export default function RoadmapPage() {
             return <div key={idx} className="h-1.5" />;
           }
 
-          // Section Headings (All-caps or starting with #)
           const isHeading =
             /^(ROLE AND LEVEL OVERVIEW|VERIFIED MATCHES|CRITICAL SKILL|RECOMMENDED PROJECTS|30-DAY EXECUTION|PROJECT TITLE|PROBLEM STATEMENT|RECOMMENDED TECH STACK|CORE ARCHITECTURE|PRODUCTION REALITIES|ATS RESUME BULLETS|INTERVIEW TALKING POINTS)/i.test(
               trimmed
@@ -309,7 +297,6 @@ export default function RoadmapPage() {
             );
           }
 
-          // Bullets starting with -
           if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
             const bulletText = trimmed.replace(/^[-•]\s*/, "");
             return (
@@ -323,7 +310,6 @@ export default function RoadmapPage() {
             );
           }
 
-          // Numbered lists
           const numMatch = trimmed.match(/^(\d+)\.\s*(.*)/);
           if (numMatch) {
             return (
@@ -350,24 +336,19 @@ export default function RoadmapPage() {
       <div className="w-80 shrink-0 border-r border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-900/60 flex flex-col justify-between hidden lg:flex">
         {/* Top: Header & New Analysis button */}
         <div className="p-4 border-b border-zinc-200 dark:border-white/10">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm"
-                style={{
-                  background: `linear-gradient(135deg, ${selectedModel.colors.primary}, ${selectedModel.colors.secondary})`,
-                }}
-              >
-                <Compass className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-zinc-900 dark:text-white">Project Roadmap</h2>
-                <p className="text-[10px] text-zinc-500">JD Gap Analysis & Blueprints</p>
-              </div>
+          <div className="flex items-center gap-2.5 mb-3">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm"
+              style={{
+                background: `linear-gradient(135deg, ${selectedModel.colors.primary}, ${selectedModel.colors.secondary})`,
+              }}
+            >
+              <Compass className="w-4 h-4" />
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium border border-emerald-500/20">
-              PostgreSQL
-            </span>
+            <div>
+              <h2 className="text-sm font-bold text-zinc-900 dark:text-white">Project Roadmap</h2>
+              <p className="text-[10px] text-zinc-500">JD Gap Analysis & Blueprints</p>
+            </div>
           </div>
 
           <button
@@ -378,7 +359,7 @@ export default function RoadmapPage() {
             }}
           >
             <Plus className="w-4 h-4" />
-            <span>New JD Analysis</span>
+            <span>New Analysis</span>
           </button>
         </div>
 
@@ -443,20 +424,10 @@ export default function RoadmapPage() {
           )}
         </div>
 
-        {/* Bottom Provider & Status Info */}
-        <div className="p-3 border-t border-zinc-200 dark:border-white/10 bg-zinc-50/50 dark:bg-zinc-900/30 text-[11px] text-zinc-500 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Multi-Provider Active</span>
-            </span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono">
-              Groq + OpenRouter
-            </span>
-          </div>
-          <p className="text-[10px] text-zinc-400 leading-tight">
-            Auto-fails over to OpenRouter on 429 rate limits.
-          </p>
+        {/* Bottom clean info */}
+        <div className="p-3 border-t border-zinc-200 dark:border-white/10 text-[11px] text-zinc-400 flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+          <span>Cross-referenced against your profile</span>
         </div>
       </div>
 
@@ -478,7 +449,6 @@ export default function RoadmapPage() {
         {/* Top Navbar */}
         <div className="h-14 shrink-0 border-b border-zinc-200 dark:border-white/10 bg-white/80 dark:bg-zinc-900/60 backdrop-blur-md px-4 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            {/* Mobile New Analysis button */}
             <button
               onClick={() => setActiveSession(null)}
               className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300"
@@ -489,7 +459,7 @@ export default function RoadmapPage() {
 
             <div className="min-w-0">
               <h1 className="text-sm font-bold text-zinc-900 dark:text-white truncate flex items-center gap-2">
-                {activeSession ? activeSession.title : "Target Role & Gap Analysis Chat"}
+                {activeSession ? activeSession.title : "Target Role & Gap Analysis"}
                 {activeSession?.target_role && (
                   <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium">
                     {activeSession.target_role}
@@ -498,17 +468,17 @@ export default function RoadmapPage() {
               </h1>
               <p className="text-[10px] text-zinc-500 truncate">
                 {activeSession
-                  ? `Persistent thread in PostgreSQL • ${activeSession.messages.length} messages`
-                  : "Cross-references your verified resumes & ChromaDB data to suggest what to build"}
+                  ? `${activeSession.messages.length} messages in conversation`
+                  : "Analyzes target job requirements against your verified profile"}
               </p>
             </div>
           </div>
 
           {activeSession && (
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[10px] px-2 py-1 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 font-medium border border-orange-500/20 flex items-center gap-1">
-                <Cpu className="w-3 h-3" />
-                <span>Zero Asterisk ATS Guaranteed</span>
+              <span className="text-[10px] px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3 text-orange-500" />
+                <span>Tailored Blueprints</span>
               </span>
             </div>
           )}
@@ -529,12 +499,11 @@ export default function RoadmapPage() {
                   <Compass className="w-6 h-6" />
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">
-                  JD Gap Analysis & Project Blueprint Generator
+                  Target Role Gap Analysis & Project Blueprints
                 </h2>
                 <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto leading-relaxed">
-                  Paste the text of any Job Description. Our Principal Architect agent mines all your stored
-                  resumes, vector embeddings, and verified skills to diagnose exactly what you are missing and
-                  propose 2-3 production-grade projects you can build to land the job.
+                  Paste any Job Description. The career architect evaluates your verified experience
+                  to diagnose skill gaps and generate high-impact project proposals you can build to prove you meet the role requirements.
                 </p>
               </div>
 
@@ -571,7 +540,7 @@ export default function RoadmapPage() {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Senior Machine Learning Platform Engineer @ Stripe"
+                    placeholder="e.g. Senior Machine Learning Platform Engineer"
                     value={titleInput}
                     onChange={(e) => setTitleInput(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-800/50 text-xs sm:text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
@@ -593,7 +562,7 @@ export default function RoadmapPage() {
 
                 <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-white/5">
                   <span className="text-[11px] text-zinc-400">
-                    Saves to PostgreSQL • Zero asterisks guaranteed
+                    Tailored to your verified background
                   </span>
 
                   <button
@@ -648,23 +617,19 @@ export default function RoadmapPage() {
                           : "bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-white/10"
                       }`}
                     >
-                      {/* Provider & Action Bar */}
+                      {/* Action Bar */}
                       {!isUser && (
                         <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-100 dark:border-white/5 select-none text-[11px] text-zinc-400">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-zinc-900 dark:text-white">
-                              Principal Career Architect
-                            </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-mono">
-                              Provider: {m.provider || "groq"}
-                            </span>
-                          </div>
+                          <span className="font-bold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                            <span>Career Architect</span>
+                          </span>
 
                           <button
                             type="button"
                             onClick={() => copyToClipboard(m.content, m.id)}
                             className="flex items-center gap-1 hover:text-zinc-700 dark:hover:text-zinc-200 transition"
-                            title="Copy response (clean zero-asterisk format)"
+                            title="Copy response"
                           >
                             {copiedId === m.id ? (
                               <>

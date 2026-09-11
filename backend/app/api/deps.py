@@ -65,13 +65,15 @@ def get_optional_user(
 
 def get_resolved_groq_key(
     x_groq_api_key: Optional[str] = Header(None, alias="x-groq-api-key"),
+    x_openrouter_api_key: Optional[str] = Header(None, alias="x-openrouter-api-key"),
     current_user: User = Depends(get_current_user),
 ) -> str:
     """
-    Resolves the Groq API key using the BYOK model:
+    Resolves the LLM API key using the BYOK model:
     1. Highest priority: `X-Groq-API-Key` request header (client-side zero-trust storage).
     2. Second priority: `current_user.encrypted_groq_key` (saved in user's account).
     3. Dev fallback: `settings.GROQ_API_KEY` (if set in backend/.env).
+    4. If no Groq key but OpenRouter key is provided via header or settings, returns empty string so GroqClient routes to OpenRouter.
     If none found, raises HTTP 400 prompting the user to enter their key.
     """
     # 1. Header
@@ -90,9 +92,15 @@ def get_resolved_groq_key(
     if settings.GROQ_API_KEY and settings.GROQ_API_KEY.strip() and settings.GROQ_API_KEY != "your-groq-api-key-here":
         return settings.GROQ_API_KEY.strip()
 
+    # 4. OpenRouter alternative fallback
+    if x_openrouter_api_key and x_openrouter_api_key.strip():
+        return ""
+    if settings.OPENROUTER_API_KEY and settings.OPENROUTER_API_KEY.strip():
+        return ""
+
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
-        detail="NO_GROQ_KEY: No Groq API key provided. Please input your free Groq API key in Settings (get one at console.groq.com/keys)."
+        detail="NO_API_KEY: No LLM API key provided. Please configure your Groq or OpenRouter API key in Settings."
     )
 
 
