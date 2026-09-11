@@ -78,6 +78,8 @@ class GroqClient:
         max_tokens: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Calls Groq expecting a JSON response object, falling back to OpenRouter on rate-limit (429)."""
+        effective_max_tokens = max_tokens if max_tokens is not None else 4096
+
         # 1. Try Groq if client is initialized
         if self._client:
             effective_model = self.model
@@ -88,7 +90,7 @@ class GroqClient:
 
             logger.info(
                 f"GroqClient.generate_json dispatching to Groq model '{effective_model}' "
-                f"(requested='{self.model}', reasoning={is_reasoning_model}, max_tokens={max_tokens})"
+                f"(requested='{self.model}', reasoning={is_reasoning_model}, max_tokens={effective_max_tokens})"
             )
             kwargs: Dict[str, Any] = {
                 "model": effective_model,
@@ -101,11 +103,10 @@ class GroqClient:
                 ],
                 "response_format": {"type": "json_object"},
                 "temperature": temperature,
+                "max_tokens": effective_max_tokens,
             }
             if is_reasoning_model:
                 kwargs["reasoning_effort"] = "none"
-            if max_tokens:
-                kwargs["max_tokens"] = max_tokens
 
             try:
                 response = self._client.chat.completions.create(**kwargs)
@@ -136,7 +137,7 @@ class GroqClient:
                         system_prompt=system_prompt,
                         user_prompt=user_prompt,
                         temperature=temperature,
-                        max_tokens=max_tokens,
+                        max_tokens=effective_max_tokens,
                     )
                 raise e
 
@@ -147,7 +148,7 @@ class GroqClient:
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 temperature=temperature,
-                max_tokens=max_tokens,
+                max_tokens=effective_max_tokens,
             )
 
         raise RuntimeError(
@@ -163,6 +164,8 @@ class GroqClient:
         max_tokens: Optional[int] = None,
     ) -> str:
         """Calls Groq expecting a plain text response, falling back to OpenRouter on rate-limit (429)."""
+        effective_max_tokens = max_tokens if max_tokens is not None else 6000
+
         # 1. Try Groq if client is initialized
         if self._client:
             effective_model = self.model
@@ -172,7 +175,7 @@ class GroqClient:
             is_reasoning_model = any(m in effective_model.lower() for m in ["qwen", "deepseek", "think"])
             logger.info(
                 f"GroqClient.generate_text dispatching to Groq model '{effective_model}' "
-                f"(requested='{self.model}', max_tokens={max_tokens})"
+                f"(requested='{self.model}', max_tokens={effective_max_tokens})"
             )
             kwargs: Dict[str, Any] = {
                 "model": effective_model,
@@ -181,15 +184,38 @@ class GroqClient:
                     {"role": "user", "content": user_prompt},
                 ],
                 "temperature": temperature,
+                "max_tokens": effective_max_tokens,
             }
             if is_reasoning_model:
                 kwargs["reasoning_effort"] = "none"
-            if max_tokens:
-                kwargs["max_tokens"] = max_tokens
 
             try:
                 response = self._client.chat.completions.create(**kwargs)
-                raw_content = response.choices[0].message.content or ""
+                choice = response.choices[0]
+                raw_content = choice.message.content or ""
+                finish_reason = getattr(choice, "finish_reason", None)
+
+                # Auto-continuation if model hit completion token ceiling
+                if finish_reason == "length":
+                    logger.warning("Groq output hit token ceiling (finish_reason=length); continuing generation...")
+                    try:
+                        continuation_kwargs = dict(kwargs)
+                        continuation_kwargs["messages"] = [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                            {"role": "assistant", "content": raw_content},
+                            {
+                                "role": "user",
+                                "content": "Please continue writing your response from the exact point where you stopped. Complete all remaining sections and roadmap in full. Do not repeat previous text.",
+                            },
+                        ]
+                        continuation_kwargs["max_tokens"] = 3000
+                        cont_resp = self._client.chat.completions.create(**continuation_kwargs)
+                        cont_text = cont_resp.choices[0].message.content or ""
+                        raw_content = raw_content.rstrip() + "\n\n" + cont_text.lstrip()
+                    except Exception as cont_err:
+                        logger.warning(f"Groq continuation attempt failed: {cont_err}")
+
                 self.last_provider_used = "groq"
                 cleaned = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
                 return strip_asterisks(cleaned)
@@ -198,7 +224,28 @@ class GroqClient:
                     try:
                         kwargs.pop("reasoning_effort", None)
                         response = self._client.chat.completions.create(**kwargs)
-                        raw_content = response.choices[0].message.content or ""
+                        choice = response.choices[0]
+                        raw_content = choice.message.content or ""
+                        finish_reason = getattr(choice, "finish_reason", None)
+                        if finish_reason == "length":
+                            logger.warning("Groq output hit token ceiling (finish_reason=length); continuing generation...")
+                            try:
+                                continuation_kwargs = dict(kwargs)
+                                continuation_kwargs["messages"] = [
+                                    {"role": "system", "content": system_prompt},
+                                    {"role": "user", "content": user_prompt},
+                                    {"role": "assistant", "content": raw_content},
+                                    {
+                                        "role": "user",
+                                        "content": "Please continue writing your response from the exact point where you stopped. Complete all remaining sections and roadmap in full. Do not repeat previous text.",
+                                    },
+                                ]
+                                continuation_kwargs["max_tokens"] = 3000
+                                cont_resp = self._client.chat.completions.create(**continuation_kwargs)
+                                cont_text = cont_resp.choices[0].message.content or ""
+                                raw_content = raw_content.rstrip() + "\n\n" + cont_text.lstrip()
+                            except Exception as cont_err:
+                                logger.warning(f"Groq continuation attempt failed: {cont_err}")
                         self.last_provider_used = "groq"
                         cleaned = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
                         return strip_asterisks(cleaned)
@@ -214,7 +261,7 @@ class GroqClient:
                         system_prompt=system_prompt,
                         user_prompt=user_prompt,
                         temperature=temperature,
-                        max_tokens=max_tokens,
+                        max_tokens=effective_max_tokens,
                     )
                 raise e
 
@@ -225,7 +272,7 @@ class GroqClient:
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 temperature=temperature,
-                max_tokens=max_tokens,
+                max_tokens=effective_max_tokens,
             )
 
         raise RuntimeError(
@@ -241,6 +288,7 @@ class GroqClient:
         max_tokens: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Calls OpenRouter API requesting structured JSON output."""
+        effective_max_tokens = max_tokens if max_tokens is not None else 4096
         headers = {
             "Authorization": f"Bearer {self.openrouter_api_key}",
             "Content-Type": "application/json",
@@ -258,11 +306,10 @@ class GroqClient:
             ],
             "response_format": {"type": "json_object"},
             "temperature": temperature,
+            "max_tokens": effective_max_tokens,
         }
-        if max_tokens:
-            payload["max_tokens"] = max_tokens
 
-        with httpx.Client(timeout=45.0) as client:
+        with httpx.Client(timeout=60.0) as client:
             resp = client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
@@ -292,6 +339,7 @@ class GroqClient:
         max_tokens: Optional[int] = None,
     ) -> str:
         """Calls OpenRouter API requesting plain text output."""
+        effective_max_tokens = max_tokens if max_tokens is not None else 6000
         headers = {
             "Authorization": f"Bearer {self.openrouter_api_key}",
             "Content-Type": "application/json",
@@ -305,11 +353,10 @@ class GroqClient:
                 {"role": "user", "content": user_prompt},
             ],
             "temperature": temperature,
+            "max_tokens": effective_max_tokens,
         }
-        if max_tokens:
-            payload["max_tokens"] = max_tokens
 
-        with httpx.Client(timeout=45.0) as client:
+        with httpx.Client(timeout=60.0) as client:
             resp = client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
@@ -317,7 +364,40 @@ class GroqClient:
             )
             resp.raise_for_status()
             data = resp.json()
-            raw_content = data["choices"][0]["message"]["content"] or ""
+            choice = data["choices"][0]
+            raw_content = choice["message"]["content"] or ""
+            finish_reason = choice.get("finish_reason") or choice.get("native_finish_reason")
+
+            # Auto-continuation if model hit token ceiling
+            if finish_reason == "length":
+                logger.warning("OpenRouter output hit token ceiling (finish_reason=length); continuing generation...")
+                try:
+                    continuation_payload = {
+                        "model": self.openrouter_model,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                            {"role": "assistant", "content": raw_content},
+                            {
+                                "role": "user",
+                                "content": "Please continue writing your response from the exact point where you stopped. Complete all remaining sections and roadmap in full. Do not repeat previous text.",
+                            },
+                        ],
+                        "temperature": temperature,
+                        "max_tokens": 3000,
+                    }
+                    cont_resp = client.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers=headers,
+                        json=continuation_payload,
+                    )
+                    if cont_resp.is_success:
+                        cont_data = cont_resp.json()
+                        cont_text = cont_data["choices"][0]["message"]["content"] or ""
+                        raw_content = raw_content.rstrip() + "\n\n" + cont_text.lstrip()
+                except Exception as cont_err:
+                    logger.warning(f"OpenRouter continuation attempt failed: {cont_err}")
+
             self.last_provider_used = "openrouter"
             cleaned = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
             return strip_asterisks(cleaned)

@@ -11,7 +11,7 @@ logger = logging.getLogger("roadmap_agent")
 
 SYSTEM_ROADMAP_PROMPT = """You are a Principal Engineering Leader, Staff Software Architect, and Career Strategist.
 Your goal is to perform a rigorous gap analysis of a candidate's verified profile and technical background against a target Job Description (JD).
-Then, you design 2 to 3 high-impact, production-grade project blueprints that the candidate should build to definitively prove they meet the missing requirements.
+Then, you design 2 high-impact, production-grade project blueprints that the candidate should build to definitively prove they meet the missing requirements.
 
 CRITICAL FORMATTING RULES:
 1. STRICT ZERO-ASTERISK RULE: You MUST NEVER use asterisks (* or **) anywhere in your output.
@@ -21,6 +21,7 @@ CRITICAL FORMATTING RULES:
    - Use clear uppercase headings or markdown hashes (#, ##, ###) without asterisks.
 2. Be technically deep, specific, and realistic. Avoid generic advice like "learn Docker". Instead specify concrete architectures, data pipelines, caching tiers, failure recovery, or evaluation frameworks.
 3. Every project proposal must solve real production problems related to the JD requirements that the candidate currently lacks.
+4. COMPLETENESS GUARANTEE: Deliver high density and concrete technical specificity while ensuring BOTH projects and the 30-Day Execution Roadmap are completed in full without truncation.
 
 OUTPUT FORMAT:
 Provide a clear, authoritative response structured in the following sections:
@@ -34,7 +35,7 @@ List the candidate's existing technical skills, frameworks, and experiences that
 CRITICAL SKILL AND ARCHITECTURE GAPS
 Highlight the specific requirements, tools, scale challenges, or domain knowledge in the JD that are not evident in the candidate's current background.
 
-RECOMMENDED PROJECTS TO BUILD (2-3 HIGH-IMPACT BLUEPRINTS)
+RECOMMENDED PROJECTS TO BUILD (2 HIGH-IMPACT BLUEPRINTS)
 For each project, include:
 Project Title: [Descriptive title]
 1. Problem Statement: Why this project matters and what real-world problem it solves.
@@ -145,13 +146,15 @@ TARGET JOB DESCRIPTION:
 {jd_text}
 
 Perform a forensic gap analysis of the candidate's profile against the job description requirements.
-Then recommend 2 to 3 concrete, production-grade projects the candidate should build to bridge the gaps and land this role.
+Then recommend 2 concrete, production-grade projects the candidate should build to bridge the gaps and land this role.
+Ensure you complete all 6 sections for both projects and the 30-day execution roadmap in full.
 Strictly adhere to the zero-asterisk rule in all parts of your answer."""
 
         content = self.client.generate_text(
             system_prompt=SYSTEM_ROADMAP_PROMPT,
             user_prompt=user_prompt,
             temperature=0.2,
+            max_tokens=6000,
         )
         content = strip_asterisks(content)
 
@@ -194,6 +197,7 @@ Strictly remember: ZERO asterisks allowed anywhere."""
             system_prompt=SYSTEM_FOLLOWUP_PROMPT,
             user_prompt=prompt,
             temperature=0.2,
+            max_tokens=4000,
         )
         content = strip_asterisks(content)
 
