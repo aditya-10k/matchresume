@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { AI_MODELS, DEFAULT_MODEL_ID, AIModelConfig } from "@/lib/model-themes";
+import { AI_MODELS, DEFAULT_MODEL_ID, AIModelConfig, buildModelsMap } from "@/lib/model-themes";
+import { API_BASE } from "@/lib/api/client";
 
 export type ColorMode = "dark" | "light";
 
@@ -19,6 +20,7 @@ interface ModelContextType {
 const ModelContext = createContext<ModelContextType | undefined>(undefined);
 
 export function ModelProvider({ children }: { children: React.ReactNode }) {
+  const [modelsMap, setModelsMap] = useState<Record<string, AIModelConfig>>(AI_MODELS);
   const [selectedModelId, setSelectedModelIdState] = useState<string>(DEFAULT_MODEL_ID);
   const [colorMode, setColorModeState] = useState<ColorMode>("dark");
   const [isMounted, setIsMounted] = useState<boolean>(false);
@@ -26,17 +28,41 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setIsMounted(true);
     const savedModel = localStorage.getItem("matchresume_selected_model");
-    if (savedModel && AI_MODELS[savedModel]) {
+    if (savedModel && modelsMap[savedModel]) {
       setSelectedModelIdState(savedModel);
+    } else {
+      localStorage.setItem("matchresume_selected_model", DEFAULT_MODEL_ID);
     }
+
     const savedColorMode = localStorage.getItem("matchresume_color_mode");
     if (savedColorMode === "light" || savedColorMode === "dark") {
       setColorModeState(savedColorMode);
     }
+
+    // Fetch permitted models configured in backend .env so Render/backend env updates reflect automatically
+    fetch(`${API_BASE}/api/models`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.models) && data.models.length > 0) {
+          const dynamicMap = buildModelsMap(data.models);
+          setModelsMap(dynamicMap);
+          const currentSaved = localStorage.getItem("matchresume_selected_model");
+          if (currentSaved && dynamicMap[currentSaved]) {
+            setSelectedModelIdState(currentSaved);
+          } else {
+            const fallbackId = data.default_model && dynamicMap[data.default_model] ? data.default_model : data.models[0];
+            setSelectedModelIdState(fallbackId);
+            localStorage.setItem("matchresume_selected_model", fallbackId);
+          }
+        }
+      })
+      .catch(() => {
+        // Ignore network errors on initial load; fallback to NEXT_PUBLIC_* env models
+      });
   }, []);
 
   const setSelectedModelId = (id: string) => {
-    if (AI_MODELS[id]) {
+    if (modelsMap[id]) {
       setSelectedModelIdState(id);
       localStorage.setItem("matchresume_selected_model", id);
     }
@@ -51,7 +77,8 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
     setColorMode(colorMode === "dark" ? "light" : "dark");
   };
 
-  const selectedModel = AI_MODELS[selectedModelId] || AI_MODELS[DEFAULT_MODEL_ID];
+  const availableModels = Object.values(modelsMap);
+  const selectedModel = modelsMap[selectedModelId] || availableModels[0] || AI_MODELS[DEFAULT_MODEL_ID];
 
   // Apply CSS variables and class dynamically to document and root
   useEffect(() => {
@@ -97,9 +124,9 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
     <ModelContext.Provider
       value={{
         selectedModel,
-        selectedModelId,
+        selectedModelId: selectedModel.id,
         setSelectedModelId,
-        availableModels: Object.values(AI_MODELS),
+        availableModels,
         colorMode,
         setColorMode,
         toggleColorMode,

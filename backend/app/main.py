@@ -37,10 +37,24 @@ app.include_router(api_router, prefix="/api")
 
 @app.get("/health", tags=["Health"])
 def health_check():
+    permitted = settings.get_permitted_models()
     return {
         "status": "healthy",
         "app_name": settings.APP_NAME,
-        "rag": "active"
+        "rag": "active",
+        "default_model": permitted[0],
+        "models": permitted,
+    }
+
+
+@app.get("/models", tags=["Models"])
+@app.get("/api/models", tags=["Models"])
+def get_permitted_models():
+    """Returns the permitted LLM models configured in the backend .env."""
+    permitted = settings.get_permitted_models()
+    return {
+        "default_model": permitted[0],
+        "models": permitted,
     }
 
 

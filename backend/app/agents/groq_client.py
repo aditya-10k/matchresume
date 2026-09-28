@@ -26,7 +26,7 @@ class GroqClient:
         openrouter_model: Optional[str] = None,
     ):
         self.api_key = api_key.strip() if api_key and api_key.strip() else settings.GROQ_API_KEY.strip()
-        self.model = model.strip() if model and model.strip() else settings.GROQ_MODEL
+        self.model = settings.resolve_model(model)
         self.openrouter_api_key = (
             openrouter_api_key.strip()
             if openrouter_api_key and openrouter_api_key.strip()
@@ -70,6 +70,15 @@ class GroqClient:
             ]
         )
 
+    def _get_candidate_groq_models(self) -> list[str]:
+        """Returns ordered list of permitted Groq models starting with the resolved target model."""
+        primary = settings.resolve_model(self.model)
+        candidates = [primary]
+        for m in settings.get_permitted_models():
+            if m not in candidates:
+                candidates.append(m)
+        return candidates
+
     def generate_json(
         self,
         system_prompt: str,
@@ -77,69 +86,80 @@ class GroqClient:
         temperature: float = 0.0,
         max_tokens: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Calls Groq expecting a JSON response object, falling back to OpenRouter on rate-limit (429)."""
-        effective_max_tokens = max_tokens if max_tokens is not None else 4096
+        """Calls Groq expecting a JSON response object, falling back across permitted models and OpenRouter."""
+        # Enforce a 4096 minimum floor so reasoning models (gpt-oss, qwen, deepseek) never exhaust tokens before emitting JSON
+        effective_max_tokens = max(max_tokens or 4096, 4096)
 
         # 1. Try Groq if client is initialized
         if self._client:
-            effective_model = self.model
-            if "prompt-guard" in self.model.lower():
-                effective_model = "llama-3.1-8b-instant"
+            candidate_models = self._get_candidate_groq_models()
+            last_error: Optional[Exception] = None
 
-            is_reasoning_model = any(m in effective_model.lower() for m in ["qwen", "deepseek", "think"])
+            for effective_model in candidate_models:
+                model_lower = effective_model.lower()
+                is_qwen_reasoning = any(m in model_lower for m in ["qwen", "deepseek", "think"])
+                is_gpt_oss = "gpt-oss" in model_lower
 
-            logger.info(
-                f"GroqClient.generate_json dispatching to Groq model '{effective_model}' "
-                f"(requested='{self.model}', reasoning={is_reasoning_model}, max_tokens={effective_max_tokens})"
-            )
-            kwargs: Dict[str, Any] = {
-                "model": effective_model,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": f"{system_prompt}\n\nYou must return a valid JSON object only without preamble or markdown fences.",
-                    },
-                    {"role": "user", "content": user_prompt},
-                ],
-                "response_format": {"type": "json_object"},
-                "temperature": temperature,
-                "max_tokens": effective_max_tokens,
-            }
-            if is_reasoning_model:
-                kwargs["reasoning_effort"] = "none"
+                logger.info(
+                    f"GroqClient.generate_json dispatching to Groq model '{effective_model}' "
+                    f"(requested='{self.model}', max_tokens={effective_max_tokens})"
+                )
+                kwargs: Dict[str, Any] = {
+                    "model": effective_model,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": f"{system_prompt}\n\nYou must return a valid JSON object only without preamble or markdown fences.",
+                        },
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "response_format": {"type": "json_object"},
+                    "temperature": temperature,
+                    "max_tokens": effective_max_tokens,
+                }
+                if is_gpt_oss:
+                    kwargs["reasoning_effort"] = "low"
+                elif is_qwen_reasoning:
+                    kwargs["reasoning_effort"] = "none"
 
-            try:
-                response = self._client.chat.completions.create(**kwargs)
-                raw_content = response.choices[0].message.content or ""
-                self.last_provider_used = "groq"
-                parsed = self._extract_json(raw_content)
-                return strip_asterisks(parsed)
-            except Exception as e:
-                # If it's a reasoning_effort rejection by Groq, retry once with standard parameters
-                if is_reasoning_model and "reasoning_effort" in kwargs:
-                    try:
-                        kwargs.pop("reasoning_effort", None)
-                        kwargs.pop("response_format", None)
-                        response = self._client.chat.completions.create(**kwargs)
-                        raw_content = response.choices[0].message.content or ""
-                        self.last_provider_used = "groq"
-                        parsed = self._extract_json(raw_content)
-                        return strip_asterisks(parsed)
-                    except Exception as retry_exc:
-                        e = retry_exc
+                try:
+                    response = self._client.chat.completions.create(**kwargs)
+                    raw_content = response.choices[0].message.content or ""
+                    self.last_provider_used = "groq"
+                    parsed = self._extract_json(raw_content)
+                    return strip_asterisks(parsed)
+                except Exception as e:
+                    # Retry once on the same model without strict response_format / reasoning_effort
+                    err_str = str(e).lower()
+                    if "404" not in err_str and "model_not_found" not in err_str and "decommissioned" not in err_str:
+                        try:
+                            retry_kwargs = dict(kwargs)
+                            retry_kwargs.pop("reasoning_effort", None)
+                            retry_kwargs.pop("response_format", None)
+                            response = self._client.chat.completions.create(**retry_kwargs)
+                            raw_content = response.choices[0].message.content or ""
+                            self.last_provider_used = "groq"
+                            parsed = self._extract_json(raw_content)
+                            return strip_asterisks(parsed)
+                        except Exception as retry_exc:
+                            e = retry_exc
 
-                if self.openrouter_api_key:
-                    logger.warning(
-                        f"Groq API call failed ({type(e).__name__}: {e}). "
-                        f"Failing over to OpenRouter ({self.openrouter_model})..."
-                    )
-                    return self._generate_json_openrouter(
-                        system_prompt=system_prompt,
-                        user_prompt=user_prompt,
-                        temperature=temperature,
-                        max_tokens=effective_max_tokens,
-                    )
-                raise e
+                    last_error = e
+                    logger.warning(f"Groq model '{effective_model}' failed ({type(e).__name__}: {e}). Trying next permitted model...")
+
+            if self.openrouter_api_key:
+                logger.warning(
+                    f"All permitted Groq models failed ({last_error}). "
+                    f"Failing over to OpenRouter ({self.openrouter_model})..."
+                )
+                return self._generate_json_openrouter(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    temperature=temperature,
+                    max_tokens=effective_max_tokens,
+                )
+            if last_error:
+                raise last_error
 
         # 2. No Groq key provided -> use OpenRouter directly if configured
         if self.openrouter_api_key:
@@ -163,107 +183,98 @@ class GroqClient:
         temperature: float = 0.2,
         max_tokens: Optional[int] = None,
     ) -> str:
-        """Calls Groq expecting a plain text response, falling back to OpenRouter on rate-limit (429)."""
-        effective_max_tokens = max_tokens if max_tokens is not None else 6000
+        """Calls Groq expecting a plain text response, falling back across permitted models and OpenRouter."""
+        effective_max_tokens = max(max_tokens or 6000, 4096)
 
         # 1. Try Groq if client is initialized
         if self._client:
-            effective_model = self.model
-            if "prompt-guard" in self.model.lower():
-                effective_model = "llama-3.1-8b-instant"
+            candidate_models = self._get_candidate_groq_models()
+            last_error: Optional[Exception] = None
 
-            is_reasoning_model = any(m in effective_model.lower() for m in ["qwen", "deepseek", "think"])
-            logger.info(
-                f"GroqClient.generate_text dispatching to Groq model '{effective_model}' "
-                f"(requested='{self.model}', max_tokens={effective_max_tokens})"
-            )
-            kwargs: Dict[str, Any] = {
-                "model": effective_model,
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                "temperature": temperature,
-                "max_tokens": effective_max_tokens,
-            }
-            if is_reasoning_model:
-                kwargs["reasoning_effort"] = "none"
+            for effective_model in candidate_models:
+                model_lower = effective_model.lower()
+                is_qwen_reasoning = any(m in model_lower for m in ["qwen", "deepseek", "think"])
+                is_gpt_oss = "gpt-oss" in model_lower
 
-            try:
-                response = self._client.chat.completions.create(**kwargs)
-                choice = response.choices[0]
-                raw_content = choice.message.content or ""
-                finish_reason = getattr(choice, "finish_reason", None)
+                logger.info(
+                    f"GroqClient.generate_text dispatching to Groq model '{effective_model}' "
+                    f"(requested='{self.model}', max_tokens={effective_max_tokens})"
+                )
+                kwargs: Dict[str, Any] = {
+                    "model": effective_model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "temperature": temperature,
+                    "max_tokens": effective_max_tokens,
+                }
+                if is_gpt_oss:
+                    kwargs["reasoning_effort"] = "low"
+                elif is_qwen_reasoning:
+                    kwargs["reasoning_effort"] = "none"
 
-                # Auto-continuation if model hit completion token ceiling
-                if finish_reason == "length":
-                    logger.warning("Groq output hit token ceiling (finish_reason=length); continuing generation...")
-                    try:
-                        continuation_kwargs = dict(kwargs)
-                        continuation_kwargs["messages"] = [
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": user_prompt},
-                            {"role": "assistant", "content": raw_content},
-                            {
-                                "role": "user",
-                                "content": "Please continue writing your response from the exact point where you stopped. Complete all remaining sections and roadmap in full. Do not repeat previous text.",
-                            },
-                        ]
-                        continuation_kwargs["max_tokens"] = 3000
-                        cont_resp = self._client.chat.completions.create(**continuation_kwargs)
-                        cont_text = cont_resp.choices[0].message.content or ""
-                        raw_content = raw_content.rstrip() + "\n\n" + cont_text.lstrip()
-                    except Exception as cont_err:
-                        logger.warning(f"Groq continuation attempt failed: {cont_err}")
+                try:
+                    response = self._client.chat.completions.create(**kwargs)
+                    choice = response.choices[0]
+                    raw_content = choice.message.content or ""
+                    finish_reason = getattr(choice, "finish_reason", None)
 
-                self.last_provider_used = "groq"
-                cleaned = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
-                return strip_asterisks(cleaned)
-            except Exception as e:
-                if is_reasoning_model and "reasoning_effort" in kwargs:
-                    try:
-                        kwargs.pop("reasoning_effort", None)
-                        response = self._client.chat.completions.create(**kwargs)
-                        choice = response.choices[0]
-                        raw_content = choice.message.content or ""
-                        finish_reason = getattr(choice, "finish_reason", None)
-                        if finish_reason == "length":
-                            logger.warning("Groq output hit token ceiling (finish_reason=length); continuing generation...")
-                            try:
-                                continuation_kwargs = dict(kwargs)
-                                continuation_kwargs["messages"] = [
-                                    {"role": "system", "content": system_prompt},
-                                    {"role": "user", "content": user_prompt},
-                                    {"role": "assistant", "content": raw_content},
-                                    {
-                                        "role": "user",
-                                        "content": "Please continue writing your response from the exact point where you stopped. Complete all remaining sections and roadmap in full. Do not repeat previous text.",
-                                    },
-                                ]
-                                continuation_kwargs["max_tokens"] = 3000
-                                cont_resp = self._client.chat.completions.create(**continuation_kwargs)
-                                cont_text = cont_resp.choices[0].message.content or ""
-                                raw_content = raw_content.rstrip() + "\n\n" + cont_text.lstrip()
-                            except Exception as cont_err:
-                                logger.warning(f"Groq continuation attempt failed: {cont_err}")
-                        self.last_provider_used = "groq"
-                        cleaned = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
-                        return strip_asterisks(cleaned)
-                    except Exception as retry_exc:
-                        e = retry_exc
+                    # Auto-continuation if model hit completion token ceiling
+                    if finish_reason == "length":
+                        logger.warning("Groq output hit token ceiling (finish_reason=length); continuing generation...")
+                        try:
+                            continuation_kwargs = dict(kwargs)
+                            continuation_kwargs["messages"] = [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": user_prompt},
+                                {"role": "assistant", "content": raw_content},
+                                {
+                                    "role": "user",
+                                    "content": "Please continue writing your response from the exact point where you stopped. Complete all remaining sections and roadmap in full. Do not repeat previous text.",
+                                },
+                            ]
+                            continuation_kwargs["max_tokens"] = 3000
+                            cont_resp = self._client.chat.completions.create(**continuation_kwargs)
+                            cont_text = cont_resp.choices[0].message.content or ""
+                            raw_content = raw_content.rstrip() + "\n\n" + cont_text.lstrip()
+                        except Exception as cont_err:
+                            logger.warning(f"Groq continuation attempt failed: {cont_err}")
 
-                if self.openrouter_api_key:
-                    logger.warning(
-                        f"Groq API call failed ({type(e).__name__}: {e}). "
-                        f"Failing over to OpenRouter ({self.openrouter_model})..."
-                    )
-                    return self._generate_text_openrouter(
-                        system_prompt=system_prompt,
-                        user_prompt=user_prompt,
-                        temperature=temperature,
-                        max_tokens=effective_max_tokens,
-                    )
-                raise e
+                    self.last_provider_used = "groq"
+                    cleaned = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
+                    return strip_asterisks(cleaned)
+                except Exception as e:
+                    err_str = str(e).lower()
+                    if "reasoning_effort" in kwargs and "404" not in err_str and "model_not_found" not in err_str:
+                        try:
+                            retry_kwargs = dict(kwargs)
+                            retry_kwargs.pop("reasoning_effort", None)
+                            response = self._client.chat.completions.create(**retry_kwargs)
+                            choice = response.choices[0]
+                            raw_content = choice.message.content or ""
+                            self.last_provider_used = "groq"
+                            cleaned = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
+                            return strip_asterisks(cleaned)
+                        except Exception as retry_exc:
+                            e = retry_exc
+
+                    last_error = e
+                    logger.warning(f"Groq model '{effective_model}' failed ({type(e).__name__}: {e}). Trying next permitted model...")
+
+            if self.openrouter_api_key:
+                logger.warning(
+                    f"All permitted Groq models failed ({last_error}). "
+                    f"Failing over to OpenRouter ({self.openrouter_model})..."
+                )
+                return self._generate_text_openrouter(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    temperature=temperature,
+                    max_tokens=effective_max_tokens,
+                )
+            if last_error:
+                raise last_error
 
         # 2. No Groq key provided -> use OpenRouter directly if configured
         if self.openrouter_api_key:

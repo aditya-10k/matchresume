@@ -42,9 +42,22 @@ export function setStoredOpenRouterKey(key: string | null) {
   }
 }
 
+import { DEFAULT_MODEL_ID } from "@/lib/model-themes";
+
+const DEPRECATED_MODELS = new Set([
+  "qwen/qwen3.6-27b",
+  "meta-llama/llama-prompt-guard-2-22m",
+  "llama-3.1-8b-instant",
+]);
+
 export function getStoredModel(): string {
-  if (typeof window === "undefined") return "qwen/qwen3.6-27b";
-  return localStorage.getItem("matchresume_selected_model") || "qwen/qwen3.6-27b";
+  if (typeof window === "undefined") return DEFAULT_MODEL_ID;
+  const saved = localStorage.getItem("matchresume_selected_model");
+  if (!saved || DEPRECATED_MODELS.has(saved)) {
+    localStorage.setItem("matchresume_selected_model", DEFAULT_MODEL_ID);
+    return DEFAULT_MODEL_ID;
+  }
+  return saved;
 }
 
 export function getApiHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {

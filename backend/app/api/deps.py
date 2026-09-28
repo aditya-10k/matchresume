@@ -108,13 +108,11 @@ def get_resolved_groq_model(
     x_groq_model: Optional[str] = Header(None, alias="x-groq-model"),
 ) -> str:
     """
-    Resolves the Groq model:
-    1. Client requested model via `x-groq-model` header.
-    2. Fallback to settings.GROQ_MODEL.
+    Resolves the Groq model against permitted models in .env:
+    1. Client requested model via `x-groq-model` header (mapped if deprecated).
+    2. Fallback to primary permitted model in settings.
     """
-    if x_groq_model and x_groq_model.strip():
-        return x_groq_model.strip()
-    return settings.GROQ_MODEL
+    return settings.resolve_model(x_groq_model)
 
 
 def get_optional_groq_key(
