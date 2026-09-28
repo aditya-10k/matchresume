@@ -30,4 +30,6 @@ services:
       - key: ENCRYPTION_KEY
         value: "yR7gU_0wz3D5P9L6F2M8A4Q1J5X8T7K2N4V0Z3C6E9A="
       - key: GROQ_MODEL
-        value: "qwen/qwen3.6-27b"
+        value: "openai/gpt-oss-120b"
+      - key: GROQ_MODELS
+        value: "openai/gpt-oss-120b,llama-3.3-70b-versatile,qwen/qwen3-32b"

@@ -5,10 +5,19 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from typing import Generator
 from app.config import settings
 
-db_url = settings.DATABASE_URL
-# Auto-fix postgres:// -> postgresql:// for SQLAlchemy 2.0 (Render, Neon, Supabase compatibility)
-if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
+db_url = settings.DATABASE_URL.strip()
+# Auto-detect installed PostgreSQL driver (psycopg2 or psycopg v3) for Render / Python 3.11-3.14 compatibility
+if db_url.startswith(("postgres://", "postgresql://", "postgresql+")):
+    scheme_rest = db_url.split("://", 1)[1]
+    try:
+        import psycopg2  # noqa: F401
+        db_url = f"postgresql+psycopg2://{scheme_rest}"
+    except ImportError:
+        try:
+            import psycopg  # noqa: F401
+            db_url = f"postgresql+psycopg://{scheme_rest}"
+        except ImportError:
+            db_url = f"postgresql://{scheme_rest}"
 
 if db_url.startswith("sqlite:///./"):
     backend_dir = Path(__file__).resolve().parent.parent.parent
